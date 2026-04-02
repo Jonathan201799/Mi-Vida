@@ -675,6 +675,7 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
           <div class="sec-hero-sub" id="creditSub">Sistema semanal — horas a favor y en contra</div>
         </div>
         <button class="btn sec-hero-btn" id="btnAddSemana" onclick="openModal('modalRegistrarSemana')">+ Semana</button>
+        <button class="btn btn-ghost" style="font-size:11px;gap:5px;padding:8px 12px" onclick="exportarCSVCredito()" title="Exportar evidencia CSV">📊 CSV</button>
       </div>
       <!-- RESUMEN RÁPIDO -->
       <div id="creditResumen" style="background:linear-gradient(135deg,rgba(123,82,255,.12),rgba(60,30,180,.06));border:1px solid rgba(123,82,255,.2);border-radius:var(--radius);padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
@@ -683,7 +684,7 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
           <div style="font-size:13px;color:var(--text2);margin-bottom:2px" id="creditResumenLabel">Cargando...</div>
           <div style="font-size:22px;font-weight:800;font-family:var(--font-display)" id="creditResumenVal">—</div>
         </div>
-        <div style="font-size:11px;color:var(--text3);text-align:right">Pulsa ✏️<br>para editar</div>
+        <div style="font-size:11px;color:var(--text3);text-align:right">Pulsa el botón editar<br>del historial</div>
       </div>
       <div class="grid-3" style="margin-bottom:20px">
         <div class="stat-card" style="text-align:center">
@@ -779,6 +780,7 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
         <button class="tab-btn" id="tabFinBudget" onclick="financeTab('presupuesto',this)">Presupuesto</button>
         <button class="tab-btn" id="tabFinCharts" onclick="financeTab('graficas',this)">Gráficas</button>
         <button class="tab-btn" id="tabFinTransfer" onclick="financeTab('transferir',this)">Transferir</button>
+        <button class="tab-btn" id="tabFinPapelera" onclick="financeTab('papelera',this)">🗑️</button>
       </div>
       <div id="finMovimientos">
         <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
@@ -815,6 +817,16 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
           <div class="input-group"><div class="input-label" id="transferNotaLabel">NOTA (opcional)</div><input type="text" id="transferNota"></div>
           <button class="btn btn-primary" style="width:100%" id="transferBtn" onclick="hacerTransferencia()">Transferir</button>
         </div>
+      </div>
+      <div id="finPapelera" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div>
+            <div class="card-title">Papelera de movimientos</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Los movimientos eliminados quedan aquí por seguridad</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="vaciarPapelera()">Vaciar</button>
+        </div>
+        <div id="papeleraList"></div>
       </div>
     </div>
 
@@ -1010,6 +1022,10 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
   <div style="font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.5px;margin-bottom:12px;text-transform:uppercase" id="modalSemanaScheduleLabel">Horario día a día (opcional)</div>
   <div id="semanaHorarioDias"></div>
   <div class="semana-resumen" id="semanaResumen"></div>
+  <div class="input-group" style="margin-top:4px">
+    <div class="input-label">NOTAS / INCIDENCIAS (opcional)</div>
+    <textarea id="semanaNotas" placeholder="Ej: Reunión extra no compensada el martes. Llegué 30 min antes el jueves por petición del jefe..." style="min-height:70px;font-size:13px;resize:vertical"></textarea>
+  </div>
   <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
     <button class="btn btn-ghost" style="width:100%" id="modalSemanaCalcBtn" onclick="calcSemana()">Calcular crédito</button>
     <button class="btn btn-primary" style="width:100%" id="modalSemanaSaveBtn" onclick="guardarSemana()">Guardar semana</button>
@@ -1127,7 +1143,17 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
+
+// ═══════════════════════════════════════════════════════
+// ICONOS SVG — reemplaza emojis inconsistentes
+// ═══════════════════════════════════════════════════════
+const ICON_EDIT = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+const ICON_BELL_ON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`;
+const ICON_BELL_OFF = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M18 8a6 6 0 0 0-9.33-5"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+const ICON_PDF = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`;
+const ICON_CSV = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>`;
 
 // ═══════════════════════════════════════════════════════
 // TRADUCCIONES
@@ -1413,6 +1439,7 @@ auth.onAuthStateChanged(async user=>{
     datosPersonales=S.get("datosPersonales")||[];
     ideas=S.get("ideas")||[];
     documentos=S.get("documentos")||[];
+    eliminados=S.get("eliminados")||[];
     overlay.classList.add("hidden");
     // Update user name in sidebar from Google account
     const nombre=user.displayName?.split(" ")[0]||"Tú";
@@ -1510,6 +1537,7 @@ let semanas=[];
 let movimientos=[];
 let presupuesto={};
 let saldos={efectivo:0,banco:0};
+let eliminados=[];
 let notasLibres=[];
 let passwords=[];
 let listas=[];
@@ -1895,25 +1923,20 @@ function showSection(name,btn){
 }
 function toggleSidebar(){document.getElementById("sidebar").classList.toggle("open");document.getElementById("overlayBg").classList.toggle("show");}
 function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlayBg").classList.remove("show");}
-function forzarActualizacion(){
-  if(confirm("¿Forzar actualización de la app? Se recargará completamente.")){
-    if("caches" in window){
-      caches.keys().then(function(names){
-        names.forEach(function(name){caches.delete(name);});
-      }).then(function(){
-        if(navigator.serviceWorker){
-          navigator.serviceWorker.getRegistrations().then(function(regs){
-            regs.forEach(function(r){r.unregister();});
-            window.location.reload(true);
-          });
-        } else {
-          window.location.reload(true);
-        }
+async function forzarActualizacion(){
+  if(!await appConfirm("Se borrará la caché y la app se recargará completamente. Tus datos están seguros en Firebase.",{title:"Forzar actualización",icon:"🔄",okLabel:"Actualizar",okClass:"btn-primary"}))return;
+  const clearCaches="caches" in window
+    ?caches.keys().then(names=>Promise.all(names.map(n=>caches.delete(n))))
+    :Promise.resolve();
+  clearCaches.then(()=>{
+    if(navigator.serviceWorker){
+      navigator.serviceWorker.getRegistrations().then(regs=>{
+        Promise.all(regs.map(r=>r.unregister())).then(()=>location.reload());
       });
     } else {
-      window.location.reload(true);
+      location.reload();
     }
-  }
+  });
 }
 function toggleTheme(){document.body.classList.toggle("light");const btn=document.getElementById("themeToggleBtn");if(btn)btn.textContent=document.body.classList.contains("light")?"●":"○";S.set("theme",document.body.classList.contains("light")?"light":"dark");}
 function togglePrivacy(){
@@ -2194,7 +2217,7 @@ function renderPendientes(){
   cfg.forEach(([tag,label])=>{
     const items=byTag[tag];if(!items||!items.length)return;
     html+=`<div style="margin-bottom:18px"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--text3);margin-bottom:8px">${label}</div>`;
-    html+=items.map(p=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:13px 14px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px"><div class="check-circle ${p.done?"done":""}" onclick="togglePendiente('${p.id}')" style="margin-top:2px">${p.done?"✓":""}</div><div style="flex:1;min-width:0"><div style="font-size:14px;color:${p.done?"var(--text3)":"var(--text)"};${p.done?"text-decoration:line-through":""}">${p.texto}</div>${p.notas?`<div style="font-size:12px;color:var(--text3);margin-top:2px">${p.notas}</div>`:""}</div><button class="btn btn-ghost btn-sm btn-icon" onclick="abrirEditarPendiente('${p.id}')" style="width:28px;height:28px;font-size:13px;min-width:28px">✏️</button><button class="btn btn-danger btn-sm btn-icon" onclick="eliminarPendiente('${p.id}')" style="width:28px;height:28px;font-size:11px;min-width:28px">✕</button></div>`).join("");
+    html+=items.map(p=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:13px 14px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px"><div class="check-circle ${p.done?"done":""}" onclick="togglePendiente('${p.id}')" style="margin-top:2px">${p.done?"✓":""}</div><div style="flex:1;min-width:0"><div style="font-size:14px;color:${p.done?"var(--text3)":"var(--text)"};${p.done?"text-decoration:line-through":""}">${p.texto}</div>${p.notas?`<div style="font-size:12px;color:var(--text3);margin-top:2px">${p.notas}</div>`:""}</div><button class="btn btn-ghost btn-sm btn-icon" onclick="abrirEditarPendiente('${p.id}')" style="width:28px;height:28px;font-size:13px;min-width:28px">${ICON_EDIT}</button><button class="btn btn-danger btn-sm btn-icon" onclick="eliminarPendiente('${p.id}')" style="width:28px;height:28px;font-size:11px;min-width:28px">✕</button></div>`).join("");
     html+="</div>";
   });
   if(!html)html=`<div class="empty-state"><div class="empty-icon">📌</div><p>${L.pend.no_pending}</p></div>`;
@@ -2552,7 +2575,7 @@ function renderCalSemanal(){
             <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.titulo}</div>
             ${ev.hora?`<div style="font-size:10px;color:var(--text3)">${ev.hora}</div>`:""}
           </div>
-          <button class="btn btn-ghost btn-sm btn-icon" onclick="abrirEditarEvento('${ev.id}')" style="width:24px;height:24px;font-size:11px;flex-shrink:0">✏</button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="abrirEditarEvento('${ev.id}')" style="width:24px;height:24px;font-size:11px;flex-shrink:0">${ICON_EDIT}</button>
         </div>`).join("");
     html+=`<div style="margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer" onclick="openDayModal('${ds}')">
@@ -2578,7 +2601,7 @@ function renderUpcoming(){
         <div class="list-item-title">${e.titulo}</div>
         <div class="list-item-sub">${e.fecha}${e.hora?" · "+e.hora:""} · ${e.categoria}</div>
       </div>
-      <button class="btn btn-ghost btn-sm btn-icon" onclick="abrirEditarEvento('${e.id}')" style="width:28px;height:28px;font-size:13px">✏</button>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="abrirEditarEvento('${e.id}')" style="width:28px;height:28px;font-size:13px">${ICON_EDIT}</button>
       <button class="btn btn-danger btn-sm btn-icon" onclick="eliminarEvento('${e.id}')" style="width:28px;height:28px">✕</button>
     </div>`).join("");
 }
@@ -2605,7 +2628,7 @@ function openDayModal(date){
           "<div style='font-size:13px;font-weight:600;color:var(--text)'>"+ev.titulo+"</div>"+
           "<div style='font-size:11px;color:var(--text3);margin-top:1px'>"+(ev.hora||"")+(ev.hora?" · ":"")+ev.categoria+"</div>"+
         "</div>"+
-        "<button class='btn btn-ghost btn-sm btn-icon edit-ev-btn' data-editid='"+ev.id+"' style='width:24px;height:24px;font-size:11px'>✏</button>"+"<button class='btn btn-danger btn-sm btn-icon' data-evid='"+ev.id+"' style='width:24px;height:24px;font-size:12px'>✕</button>"+
+        "<button class='btn btn-ghost btn-sm btn-icon edit-ev-btn' data-editid='"+ev.id+"' style='width:24px;height:24px;font-size:11px'>${ICON_EDIT}</button>"+"<button class='btn btn-danger btn-sm btn-icon' data-evid='"+ev.id+"' style='width:24px;height:24px;font-size:12px'>✕</button>"+
       "</div>";
     });
   }
@@ -2713,6 +2736,7 @@ function initModalSemana(){
   document.getElementById("semanaFecha").value=monStr;
   document.getElementById("semanaHorasAsignadas").value="";
   document.getElementById("semanaResumen").style.display="none";
+  document.getElementById("semanaNotas").value="";
   buildDiaInputs(monStr);
   setTimeout(()=>{
     // If this week already has data, load it; else pre-fill from previous week as template
@@ -2741,6 +2765,7 @@ function checkSemanaExistente(){
   const ex=semanas.find(s=>s.fechaLunes===fechaLunes);
   if(!ex)return;
   if(ex.horasAsignadas)document.getElementById("semanaHorasAsignadas").value=ex.horasAsignadas;
+  if(ex.notas)document.getElementById("semanaNotas").value=ex.notas;
   if(ex.horario)ex.horario.forEach((dia,idx)=>{
     if(dia.libre){const btn=document.getElementById("dia_libre_"+idx);if(btn&&!btn.classList.contains("on")){btn.classList.add("on");applyDiaLibre(idx,true);}}
     else{const ent=document.getElementById("dia_entrada_"+idx),sal=document.getElementById("dia_salida_"+idx);if(ent&&dia.entrada)ent.value=dia.entrada;if(sal&&dia.salida)sal.value=dia.salida;}
@@ -2796,6 +2821,7 @@ function guardarSemana(){
   const asignadas=parseFloat(box.dataset.asignadas||0);
   if(!asignadas)return toast(L.toast.week_hours);
   const diff=parseFloat(box.dataset.diff||0),contractual=parseFloat(ajustes.jornadaSemanal)||34;
+  const notas=document.getElementById("semanaNotas").value.trim();
   const horario=Array.from({length:7},(_,i)=>{
     const libre=document.getElementById("dia_libre_"+i)?.classList.contains("on");
     if(libre)return{dia:L.days[i],libre:true};
@@ -2803,7 +2829,8 @@ function guardarSemana(){
     const salida=document.getElementById("dia_salida_"+i)?.value||"";
     return(entrada&&salida)?{dia:L.days[i],entrada,salida}:null;
   }).filter(Boolean);
-  const sem={id:uid(),fechaLunes,horasAsignadas:asignadas,horasContractuales:contractual,diff,horario};
+  const existente=semanas.find(s=>s.fechaLunes===fechaLunes);
+  const sem={id:uid(),fechaLunes,horasAsignadas:asignadas,horasContractuales:contractual,diff,horario,notas,registradoEn:existente?.registradoEn||new Date().toISOString()};
   const idx=semanas.findIndex(s=>s.fechaLunes===fechaLunes);
   if(idx>=0)semanas[idx]=sem;else semanas.push(sem);
   S.set("semanas",semanas);closeModal("modalRegistrarSemana");toast(L.toast.week_saved);renderCredito();
@@ -2860,7 +2887,25 @@ function renderCredito(){
   const sorted=[...semanas].sort((a,b)=>b.fechaLunes.localeCompare(a.fechaLunes));
   document.getElementById("creditHistorial").innerHTML=sorted.length===0
     ?`<div class="empty-state"><div class="empty-icon">⏱</div><p>${L.credit.no_history}</p></div>`
-    :sorted.map(s=>`<div class="list-item"><div style="width:8px;height:8px;border-radius:50%;background:${s.diff>=0?"var(--green)":"var(--red)"};flex-shrink:0;margin-top:6px"></div><div class="list-item-content"><div class="list-item-title">${L.credit.week_of} ${s.fechaLunes}</div><div class="list-item-sub">${s.horasAsignadas}h · ${s.horasContractuales}h</div></div><div style="display:flex;align-items:center;gap:8px"><span class="badge ${s.diff>=0?"badge-green":"badge-red"}">${fmtHoras(s.diff)}</span><button class="btn btn-ghost btn-sm btn-icon" onclick="editarSemana('${s.fechaLunes}')" title="Editar" style="font-size:13px">✏️</button><button class="btn btn-danger btn-sm btn-icon" onclick="eliminarSemana('${s.id}')">✕</button></div></div>`).join("");
+    :sorted.map(s=>{
+      const regDate=s.registradoEn?new Date(s.registradoEn).toLocaleString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+      return`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${s.diff>=0?"var(--green)":"var(--red)"};flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600">${L.credit.week_of} ${s.fechaLunes}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">${s.horasAsignadas}h trabajadas · ${s.horasContractuales}h contractuales${regDate?" · registrado "+regDate:""}</div>
+          </div>
+          <span class="badge ${s.diff>=0?"badge-green":"badge-red"}">${fmtHoras(s.diff)}</span>
+        </div>
+        ${s.notas?`<div style="margin-top:10px;padding:8px 10px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text2);line-height:1.5">📝 ${s.notas}</div>`:""}
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button class="btn btn-ghost btn-sm" onclick="descargaPDFSemana('${s.fechaLunes}')" title="Descargar PDF" style="gap:5px;font-size:11px">${ICON_PDF} PDF</button>
+          <button class="btn btn-ghost btn-sm" onclick="editarSemana('${s.fechaLunes}')" title="Editar" style="gap:5px;font-size:11px">${ICON_EDIT} Editar</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="eliminarSemana('${s.id}')" style="margin-left:auto">✕</button>
+        </div>
+      </div>`;
+    }).join("");
   setTimeout(()=>{
     const last8=Array.from({length:8},(_,i)=>{const d=new Date(),day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1)-((7-i)*7),mon=new Date(d);mon.setDate(diff);return mon.getFullYear()+"-"+String(mon.getMonth()+1).padStart(2,"0")+"-"+String(mon.getDate()).padStart(2,"0");});
     const asig8=last8.map(l=>{const s=semanas.find(s=>s.fechaLunes===l);return s?s.horasAsignadas:null;});
@@ -2870,6 +2915,163 @@ function renderCredito(){
   },100);
 }
 async function eliminarSemana(id){if(!await appConfirm("Esta acción no se puede deshacer.",{title:"Borrar semana",icon:"🗑️"}))return;semanas=semanas.filter(s=>s.id!==id);S.set("semanas",semanas);renderCredito();}
+
+function descargaPDFSemana(fechaLunes){
+  const s=semanas.find(x=>x.fechaLunes===fechaLunes);
+  if(!s){toast("❌ Semana no encontrada");return;}
+  const {jsPDF}=window.jspdf;
+  if(!jsPDF){toast("❌ jsPDF no cargado");return;}
+  const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+  const W=210,ml=18,mr=192,cw=W-ml*2;
+  // Cabecera
+  doc.setFillColor(4,8,15);
+  doc.rect(0,0,W,38,"F");
+  doc.setTextColor(255,255,255);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(18);
+  doc.text("MI VIDA — Crédito Horario",ml,16);
+  doc.setFontSize(10);
+  doc.setFont("helvetica","normal");
+  doc.setTextColor(150,170,200);
+  doc.text("Informe semanal · Registro oficial de jornada",ml,24);
+  doc.setTextColor(100,140,220);
+  doc.text("Semana del "+s.fechaLunes,ml,31);
+  // KPIs
+  doc.setFillColor(14,20,35);
+  doc.roundedRect(ml,44,cw/3-3,22,3,3,"F");
+  doc.roundedRect(ml+cw/3+1.5,44,cw/3-3,22,3,3,"F");
+  doc.roundedRect(ml+2*(cw/3)+3,44,cw/3-3,22,3,3,"F");
+  const diff=parseFloat(s.diff)||0;
+  const kpis=[
+    {label:"HORAS TRABAJADAS",val:s.horasAsignadas+"h",color:[74,222,128]},
+    {label:"JORNADA CONTRACTUAL",val:s.horasContractuales+"h",color:[148,163,184]},
+    {label:"CRÉDITO",val:(diff>=0?"+":"")+fmtHoras(diff),color:diff>=0?[74,222,128]:[239,68,68]}
+  ];
+  kpis.forEach((k,i)=>{
+    const x=ml+i*(cw/3)+i*1.5+6;
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(8);
+    doc.setTextColor(100,120,160);
+    doc.text(k.label,x,52);
+    doc.setFontSize(16);
+    doc.setTextColor(...k.color);
+    doc.text(k.val,x,62);
+  });
+  // Tabla horario
+  let y=76;
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(9);
+  doc.setTextColor(100,140,220);
+  doc.text("HORARIO DÍA A DÍA",ml,y);
+  y+=5;
+  doc.setFillColor(14,20,35);
+  doc.rect(ml,y,cw,7,"F");
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(8);
+  doc.setTextColor(150,170,200);
+  doc.text("DÍA",ml+3,y+4.5);
+  doc.text("ENTRADA",ml+45,y+4.5);
+  doc.text("SALIDA",ml+85,y+4.5);
+  doc.text("HORAS",ml+125,y+4.5);
+  doc.text("ESTADO",ml+155,y+4.5);
+  y+=7;
+  const diasTrab=s.horario?.filter(d=>!d.libre&&d.entrada&&d.salida)||[];
+  const diasLibre=s.horario?.filter(d=>d.libre)||[];
+  s.horario?.forEach((dia,idx)=>{
+    if(idx%2===0){doc.setFillColor(10,14,26);doc.rect(ml,y,cw,8,"F");}
+    else{doc.setFillColor(14,20,35);doc.rect(ml,y,cw,8,"F");}
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(9);
+    if(dia.libre){
+      doc.setTextColor(200,200,200);
+      doc.text(dia.dia||"—",ml+3,y+5.5);
+      doc.setTextColor(232,160,32);
+      doc.text("—","—","—",ml+45,y+5.5);
+      doc.text("Día libre",ml+155,y+5.5);
+    } else {
+      doc.setTextColor(220,230,255);
+      doc.text(dia.dia||"—",ml+3,y+5.5);
+      doc.text(dia.entrada||"—",ml+45,y+5.5);
+      doc.text(dia.salida||"—",ml+85,y+5.5);
+      if(dia.entrada&&dia.salida){
+        const[eh,em]=dia.entrada.split(":").map(Number),[sh,sm]=dia.salida.split(":").map(Number);
+        const h=((sh*60+sm)-(eh*60+em))/60;
+        doc.setTextColor(74,222,128);
+        doc.text(h.toFixed(1)+"h",ml+125,y+5.5);
+      }
+      doc.setTextColor(100,200,150);
+      doc.text("Trabajado",ml+155,y+5.5);
+    }
+    y+=8;
+  });
+  // Totales
+  y+=4;
+  doc.setFillColor(25,40,70);
+  doc.rect(ml,y,cw,10,"F");
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(9);
+  doc.setTextColor(150,170,200);
+  doc.text("TOTAL",ml+3,y+6.5);
+  doc.setTextColor(74,222,128);
+  doc.text(s.horasAsignadas+"h",ml+125,y+6.5);
+  doc.setTextColor(diff>=0?[74,222,128]:[239,68,68]);
+  doc.setTextColor(...(diff>=0?[74,222,128]:[239,68,68]));
+  doc.text((diff>=0?"+":"")+fmtHoras(diff)+" sobre contrato",ml+155,y+6.5);
+  y+=16;
+  // Notas
+  if(s.notas){
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(9);
+    doc.setTextColor(100,140,220);
+    doc.text("NOTAS E INCIDENCIAS",ml,y);
+    y+=5;
+    doc.setFillColor(14,20,35);
+    doc.roundedRect(ml,y,cw,1,"F");
+    y+=4;
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(9);
+    doc.setTextColor(200,210,230);
+    const lines=doc.splitTextToSize(s.notas,cw-4);
+    lines.forEach(line=>{doc.text(line,ml+2,y);y+=5;});
+    y+=4;
+  }
+  // Firma
+  y+=6;
+  doc.setDrawColor(40,60,100);
+  doc.line(ml,y,ml+70,y);
+  doc.line(ml+90,y,ml+90+70,y);
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(7);
+  doc.setTextColor(80,100,140);
+  doc.text("Firma del trabajador",ml,y+4);
+  doc.text("Firma del responsable",ml+90,y+4);
+  // Pie
+  y+=16;
+  doc.setFillColor(4,8,15);
+  doc.rect(0,y,W,20,"F");
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(7);
+  doc.setTextColor(80,100,140);
+  const regDate=s.registradoEn?new Date(s.registradoEn).toLocaleString("es-ES"):"Sin fecha de registro";
+  doc.text("Documento generado por Mi Vida · Registrado: "+regDate,ml,y+8);
+  doc.text("Semana: "+s.fechaLunes+" · Jornada contractual: "+s.horasContractuales+"h/sem",ml,y+14);
+  doc.save("credito_semana_"+s.fechaLunes+".pdf");
+  toast("📄 PDF descargado");
+}
+
+function exportarCSVCredito(){
+  const sorted=[...semanas].sort((a,b)=>a.fechaLunes.localeCompare(b.fechaLunes));
+  const rows=[["Semana (lunes)","Horas trabajadas","Horas contractuales","Crédito (h)","Crédito (formato)","Días trabajados","Notas","Registrado el"]];
+  sorted.forEach(s=>{
+    const diasTrab=s.horario?.filter(d=>!d.libre&&d.entrada&&d.salida).length||0;
+    const regDate=s.registradoEn?new Date(s.registradoEn).toLocaleString("es-ES"):"";
+    rows.push([s.fechaLunes,s.horasAsignadas,s.horasContractuales,(parseFloat(s.diff)||0).toFixed(2),fmtHoras(parseFloat(s.diff)||0),diasTrab,s.notas||"",regDate]);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="credito_horario_"+today()+".csv";a.click();
+  toast("📊 CSV descargado");
+}
 function editarSemana(fechaLunes){
   // Open the existing modal pre-filled with the week data
   const sem=semanas.find(s=>s.fechaLunes===fechaLunes);
@@ -2879,6 +3081,7 @@ function editarSemana(fechaLunes){
   setTimeout(()=>{
     document.getElementById("semanaFecha").value=fechaLunes;
     document.getElementById("semanaHorasAsignadas").value=sem.horasAsignadas||"";
+    document.getElementById("semanaNotas").value=sem.notas||"";
     buildDiaInputs(fechaLunes);
     if(sem.horario)sem.horario.forEach((dia,idx)=>{
       if(dia.libre){const btn=document.getElementById("dia_libre_"+idx);if(btn&&!btn.classList.contains("on")){btn.classList.add("on");applyDiaLibre(idx,true);}}
@@ -2891,13 +3094,24 @@ function editarSemana(fechaLunes){
 // ═══════════════════════════════════════════════════════
 // FINANZAS
 // ═══════════════════════════════════════════════════════
+// Saldo siempre calculado desde movimientos — nunca se desincroniza
+function recalcSaldos(){
+  const s={efectivo:0,banco:0};
+  movimientos.forEach(m=>{
+    if(!(m.cuenta in s))s[m.cuenta]=0;
+    if(m.tipo==="ingreso")s[m.cuenta]+=m.cantidad;
+    else s[m.cuenta]-=m.cantidad;
+  });
+  return s;
+}
 function financeTab(tab,btn){
   currentFinTab=tab;
-  ["movimientos","presupuesto","graficas","transferir"].forEach(t=>{document.getElementById("fin"+t.charAt(0).toUpperCase()+t.slice(1)).style.display=t===tab?"block":"none";});
+  ["movimientos","presupuesto","graficas","transferir","papelera"].forEach(t=>{const el=document.getElementById("fin"+t.charAt(0).toUpperCase()+t.slice(1));if(el)el.style.display=t===tab?"block":"none";});
   document.querySelectorAll("#sec-finanzas .tab-btn").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
   if(tab==="graficas")setTimeout(renderGraficas,100);
   if(tab==="presupuesto")renderPresupuesto();
+  if(tab==="papelera")renderPapelera();
 }
 function setTipoMov(tipo){
   tipoMovActual=tipo;
@@ -2975,13 +3189,14 @@ function hacerTransferencia(){
 }
 function renderFinanzas(){
   const L=T();
+  const vivos=recalcSaldos(); // siempre desde movimientos — nunca se desincroniza
   const privado=(localStorage.getItem('privacyMode')??'1')==='1';
   const mask=v=>privado?'••••••':v;
   document.getElementById("finTitle").textContent=L.fin.title;
   document.getElementById("finSub").textContent=L.fin.sub;
-  document.getElementById("saldoEfectivo").textContent=mask(fmtMoney(saldos.efectivo));
-  document.getElementById("saldoBanco").textContent=mask(fmtMoney(saldos.banco));
-  document.getElementById("saldoTotal").textContent=mask(fmtMoney(saldos.efectivo+saldos.banco));
+  document.getElementById("saldoEfectivo").textContent=mask(fmtMoney(vivos.efectivo));
+  document.getElementById("saldoBanco").textContent=mask(fmtMoney(vivos.banco));
+  document.getElementById("saldoTotal").textContent=mask(fmtMoney(vivos.efectivo+vivos.banco));
   const eyeBtn=document.getElementById("finEyeBtn");
   if(eyeBtn)eyeBtn.innerHTML=eyeIcon(!privado);
   // Mini monthly summary
@@ -3062,7 +3277,7 @@ function renderMovimientos(){
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           <div style="font-size:15px;font-weight:700;font-family:var(--font-display);color:${accentColor}">${ingreso?"+":"-"}${fmtMoney(m.cantidad)}</div>
-          <button class="btn btn-ghost btn-sm btn-icon" onclick="editarMovimiento('${m.id}')" style="font-size:13px;width:28px;height:28px">✏</button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="editarMovimiento('${m.id}')" style="width:28px;height:28px">${ICON_EDIT}</button>
           <button class="btn btn-danger btn-sm btn-icon" onclick="eliminarMovimiento('${m.id}')" style="width:28px;height:28px">✕</button>
         </div>
       </div>`;
@@ -3213,16 +3428,63 @@ function editarMovimiento(id){
   openModal("modalNuevoMovimiento");
 }
 async function eliminarMovimiento(id){
-  if(!await appConfirm("Esta acción no se puede deshacer.",{title:"Borrar movimiento",icon:"🗑️"}))return;
+  if(!await appConfirm("El movimiento se guardará en la papelera y podrás consultarlo.",{title:"Borrar movimiento",icon:"🗑️",okLabel:"Borrar",okClass:"btn-danger"}))return;
   const m=movimientos.find(mv=>mv.id===id);
-  if(m){if(m.tipo==="ingreso")saldos[m.cuenta]-=m.cantidad;else saldos[m.cuenta]+=m.cantidad;S.set("saldos",saldos);}
+  if(m){
+    eliminados.push({...m,eliminadoEn:new Date().toISOString()});
+    S.set("eliminados",eliminados);
+  }
   movimientos=movimientos.filter(mv=>mv.id!==id);
   S.set("movimientos",movimientos);
   if(currentUser){
-    db.doc("compartido/finanzas").set({movimientos,saldos},{merge:true}).catch(e=>console.warn(e));
+    db.doc("compartido/finanzas").set({movimientos},{merge:true}).catch(e=>console.warn(e));
     lastLocalSave=Date.now()+5000;
   }
   renderFinanzas();
+}
+async function vaciarPapelera(){
+  if(!await appConfirm("Se borrarán permanentemente "+eliminados.length+" movimientos. Esto no se puede deshacer.",{title:"Vaciar papelera",icon:"🗑️",okLabel:"Vaciar",okClass:"btn-danger"}))return;
+  eliminados=[];S.set("eliminados",eliminados);
+  renderPapelera();
+  toast("🗑️ Papelera vaciada");
+}
+async function restaurarMovimiento(id){
+  const m=eliminados.find(x=>x.id===id);
+  if(!m)return;
+  const{eliminadoEn,...original}=m;
+  movimientos.push(original);
+  eliminados=eliminados.filter(x=>x.id!==id);
+  S.set("movimientos",movimientos);S.set("eliminados",eliminados);
+  if(currentUser){
+    db.doc("compartido/finanzas").set({movimientos},{merge:true}).catch(e=>console.warn(e));
+    lastLocalSave=Date.now()+5000;
+  }
+  renderPapelera();renderFinanzas();
+  toast("↩️ Movimiento restaurado");
+}
+function renderPapelera(){
+  const c=document.getElementById("papeleraList");if(!c)return;
+  if(!eliminados.length){
+    c.innerHTML=`<div class="empty-state"><div class="empty-icon">🗑️</div><p>La papelera está vacía</p></div>`;
+    return;
+  }
+  const sorted=[...eliminados].sort((a,b)=>(b.eliminadoEn||"").localeCompare(a.eliminadoEn||""));
+  c.innerHTML=sorted.map(m=>{
+    const ingreso=m.tipo==="ingreso";
+    const accentColor=ingreso?"var(--green)":"var(--red)";
+    const elDate=m.eliminadoEn?new Date(m.eliminadoEn).toLocaleString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+    return`<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;opacity:.8">
+      <div style="width:36px;height:36px;border-radius:10px;background:${ingreso?"rgba(45,212,160,.1)":"rgba(224,92,92,.1)"};color:${accentColor};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${ingreso?"↑":"↓"}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;color:var(--text3);text-decoration:line-through">${m.desc||"Sin descripción"}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${m.categoria} · ${m.fecha} · Eliminado ${elDate}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <div style="font-size:14px;font-weight:700;font-family:var(--font-display);color:${accentColor}">${ingreso?"+":"-"}${fmtMoney(m.cantidad)}</div>
+        <button class="btn btn-ghost btn-sm" onclick="restaurarMovimiento('${m.id}')" title="Restaurar" style="font-size:11px">↩️</button>
+      </div>
+    </div>`;
+  }).join("");
 }
 function renderGraficas(){
   const L=T(),mesActual=localMonth();
@@ -3338,7 +3600,7 @@ function renderNotasLibres(c){
         </div>
         ${lines?`<div style="font-size:13px;color:var(--text2);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lines}</div>`:""}
       </div>
-      <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation();editarNota('${n.id}')" style="width:26px;height:26px;font-size:11px;min-width:26px;flex-shrink:0">✏️</button><button class="btn btn-danger btn-sm btn-icon" onclick="event.stopPropagation();eliminarNota('${n.id}')" style="width:26px;height:26px;font-size:11px;min-width:26px;flex-shrink:0">✕</button>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation();editarNota('${n.id}')" style="width:26px;height:26px;font-size:11px;min-width:26px;flex-shrink:0">${ICON_EDIT}</button><button class="btn btn-danger btn-sm btn-icon" onclick="event.stopPropagation();eliminarNota('${n.id}')" style="width:26px;height:26px;font-size:11px;min-width:26px;flex-shrink:0">✕</button>
     </div>`;
   }).join("");
 }
@@ -3394,7 +3656,7 @@ function toggleListaItem(lid,idx){const l=listas.find(l=>l.id===lid);if(l&&l.ite
 function eliminarListaItem(lid,idx){const l=listas.find(l=>l.id===lid);if(l)l.items.splice(idx,1);S.set("listas",listas);renderNotas();}
 function openAddListaItem(id,nombre){const L=T();document.getElementById("modalAddListaTitulo").textContent=L.common.add_to+" "+nombre;document.getElementById("addListaItemId").value=id;document.getElementById("addListaItemText").value="";openModal("modalAddListaItem");}
 function addItemToLista(){const L=T(),id=document.getElementById("addListaItemId").value,t2=document.getElementById("addListaItemText").value.trim();if(!t2)return;const l=listas.find(l=>l.id===id);if(l){if(!l.items)l.items=[];l.items.push({texto:t2,done:false});S.set("listas",listas);}closeModal("modalAddListaItem");toast(L.toast.item_added);renderNotas();}
-function renderContactos(c){const L=T();if(!contactos.length){c.innerHTML=`<div class="empty-state"><div class="empty-icon">📞</div><p>${L.common.empty_contacts}</p></div>`;return;}c.innerHTML=contactos.map(ct=>`<div style="background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px"><div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent3),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">${ct.nombre?ct.nombre[0].toUpperCase():"?"}</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">${ct.nombre}</div>${ct.telefono?`<div style="font-size:13px;color:var(--text2)">${ct.telefono}</div>`:""} ${ct.email?`<div style="font-size:12px;color:var(--text3)">${ct.email}</div>`:""} ${ct.notas?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${ct.notas}</div>`:""}</div><div style="display:flex;flex-direction:column;gap:6px">${ct.telefono?`<a href="tel:${ct.telefono}" class="btn btn-ghost btn-sm btn-icon">📞</a>`:""}<button class="btn btn-ghost btn-sm btn-icon" onclick="editarContacto('${ct.id}')">✏️</button><button class="btn btn-danger btn-sm btn-icon" onclick="eliminarContacto('${ct.id}')">✕</button></div></div>`).join("");}
+function renderContactos(c){const L=T();if(!contactos.length){c.innerHTML=`<div class="empty-state"><div class="empty-icon">📞</div><p>${L.common.empty_contacts}</p></div>`;return;}c.innerHTML=contactos.map(ct=>`<div style="background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px"><div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent3),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">${ct.nombre?ct.nombre[0].toUpperCase():"?"}</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">${ct.nombre}</div>${ct.telefono?`<div style="font-size:13px;color:var(--text2)">${ct.telefono}</div>`:""} ${ct.email?`<div style="font-size:12px;color:var(--text3)">${ct.email}</div>`:""} ${ct.notas?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${ct.notas}</div>`:""}</div><div style="display:flex;flex-direction:column;gap:6px">${ct.telefono?`<a href="tel:${ct.telefono}" class="btn btn-ghost btn-sm btn-icon">📞</a>`:""}<button class="btn btn-ghost btn-sm btn-icon" onclick="editarContacto('${ct.id}')">${ICON_EDIT}</button><button class="btn btn-danger btn-sm btn-icon" onclick="eliminarContacto('${ct.id}')">✕</button></div></div>`).join("");}
 let _editContactoId=null;
 function editarContacto(id){
   const c=contactos.find(c=>c.id===id);if(!c)return;
@@ -3429,7 +3691,7 @@ async function eliminarDato(id){if(!await appConfirm("Esta acción no se puede d
 function renderIdeas(c){const L=T();if(!ideas.length){c.innerHTML=`<div class="empty-state"><div class="empty-icon">💡</div><p>${L.common.empty_ideas}</p></div>`;return;}c.innerHTML=ideas.map(i=>`<div style="background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px"><div style="font-size:18px;flex-shrink:0">💡</div><div style="flex:1"><div style="font-size:14px;color:var(--text);line-height:1.5">${i.texto}</div><div style="font-size:11px;color:var(--text3);margin-top:4px">${i.fecha}</div></div><button class="btn btn-danger btn-sm btn-icon" onclick="eliminarIdea('${i.id}')">✕</button></div>`).join("");}
 function guardarIdea(){const L=T(),t2=document.getElementById("ideaTexto").value.trim();if(!t2)return toast(L.toast.enter_text);ideas.push({id:uid(),texto:t2,fecha:today()});S.set("ideas",ideas);closeModal("modalNuevaIdea");document.getElementById("ideaTexto").value="";toast(L.toast.idea_saved);renderNotas();}
 async function eliminarIdea(id){if(!await appConfirm("Esta acción no se puede deshacer.",{title:"Borrar idea",icon:"🗑️"}))return;ideas=ideas.filter(i=>i.id!==id);S.set("ideas",ideas);renderNotas();}
-function renderDocumentos(c){const L=T();if(!documentos.length){c.innerHTML=`<div class="empty-state"><div class="empty-icon">📄</div><p>${L.common.empty_docs}</p></div>`;return;}const now=new Date();c.innerHTML=documentos.map(d=>{const cad=d.caducidad?new Date(d.caducidad):null;const diffD=cad?Math.ceil((cad-now)/864e5):null;const expiryColor=diffD===null?"var(--text3)":diffD<0?"var(--red)":diffD<30?"var(--gold)":"var(--green)";const expiryTxt=diffD===null?L.common.no_expiry:diffD<0?L.common.expired:diffD<30?diffD+L.common.days_remaining:"✓ "+d.caducidad;return`<div style="background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px"><div style="width:40px;height:40px;border-radius:var(--radius-xs);background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📄</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">${d.nombre}</div><div style="font-size:12px;color:var(--text3)">${d.tipo}${d.notas?" · "+d.notas:""}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span style="font-size:11px;font-weight:700;color:${expiryColor}">${expiryTxt}</span><button class="btn btn-ghost btn-sm btn-icon" onclick="editarDocumento('${d.id}')">✏️</button><button class="btn btn-danger btn-sm btn-icon" onclick="eliminarDocumento('${d.id}')">✕</button></div></div>`;}).join("");}
+function renderDocumentos(c){const L=T();if(!documentos.length){c.innerHTML=`<div class="empty-state"><div class="empty-icon">📄</div><p>${L.common.empty_docs}</p></div>`;return;}const now=new Date();c.innerHTML=documentos.map(d=>{const cad=d.caducidad?new Date(d.caducidad):null;const diffD=cad?Math.ceil((cad-now)/864e5):null;const expiryColor=diffD===null?"var(--text3)":diffD<0?"var(--red)":diffD<30?"var(--gold)":"var(--green)";const expiryTxt=diffD===null?L.common.no_expiry:diffD<0?L.common.expired:diffD<30?diffD+L.common.days_remaining:"✓ "+d.caducidad;return`<div style="background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px"><div style="width:40px;height:40px;border-radius:var(--radius-xs);background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📄</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">${d.nombre}</div><div style="font-size:12px;color:var(--text3)">${d.tipo}${d.notas?" · "+d.notas:""}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span style="font-size:11px;font-weight:700;color:${expiryColor}">${expiryTxt}</span><button class="btn btn-ghost btn-sm btn-icon" onclick="editarDocumento('${d.id}')">${ICON_EDIT}</button><button class="btn btn-danger btn-sm btn-icon" onclick="eliminarDocumento('${d.id}')">✕</button></div></div>`;}).join("");}
 let _editDocId=null;
 function editarDocumento(id){
   const d=documentos.find(d=>d.id===id);if(!d)return;
@@ -3850,7 +4112,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260401v59';
+const CURRENT_CACHE = 'mivida-20260402v60';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
