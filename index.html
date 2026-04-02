@@ -1024,7 +1024,7 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
   <div class="semana-resumen" id="semanaResumen"></div>
   <div class="input-group" style="margin-top:4px">
     <div class="input-label">NOTAS / INCIDENCIAS (opcional)</div>
-    <textarea id="semanaNotas" placeholder="Ej: Reunión extra no compensada el martes. Llegué 30 min antes el jueves por petición del jefe..." style="min-height:70px;font-size:13px;resize:vertical"></textarea>
+    <textarea id="semanaNotas" placeholder="Ej: Reunión extra no compensada el martes. Llegué 30 min antes el jueves por petición del jefe..." style="min-height:72px;max-height:160px;font-size:13px;resize:vertical;writing-mode:horizontal-tb;direction:ltr;line-height:1.5;padding:10px 12px"></textarea>
   </div>
   <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
     <button class="btn btn-ghost" style="width:100%" id="modalSemanaCalcBtn" onclick="calcSemana()">Calcular crédito</button>
@@ -1143,7 +1143,7 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script>
 
 // ═══════════════════════════════════════════════════════
@@ -2200,7 +2200,7 @@ function renderSemanal(){
     const taskItems=tareasD.map(ta=>{
       const isDone=isToday&&completadas[semana+"_"+ta.id];
       const hasAl=ta.alarma&&ta.alarma.length>0;
-      return`<div class="task-item" onclick="${isToday?`toggleTarea('${ta.id}')`:""}" style="cursor:${isToday?"pointer":"default"}${isToday?"":";opacity:.55"}"><div class="check-circle ${isDone?"done":""}">${isDone?"\u2713":""}</div><div class="task-text ${isDone?"done":""}">${ta.texto}${hasAl?`<span style="font-size:10px;color:var(--accent2);margin-left:5px">\ud83d\udd14 ${ta.alarma}</span>`:""}</div><button onclick="event.stopPropagation();editarAlarma('${ta.id}')" style="background:none;border:none;font-size:14px;cursor:pointer;padding:2px 4px;color:${hasAl?"var(--accent2)":"var(--text3)"}" title="${hasAl?"Cambiar alarma":"A\u00f1adir alarma"}">${hasAl?"\ud83d\udd14":"\ud83d\udd15"}</button><button onclick="event.stopPropagation();abrirEditarTarea('${ta.id}')" style="background:none;border:none;font-size:13px;cursor:pointer;padding:2px 4px;color:var(--text3)" title="Editar">\u270f\ufe0f</button><button class="btn btn-danger btn-sm btn-icon" onclick="event.stopPropagation();eliminarTarea('${ta.id}')" style="width:24px;height:24px;font-size:11px;min-width:24px">\u2715</button></div>`;
+      return`<div class="task-item" onclick="${isToday?`toggleTarea('${ta.id}')`:""}" style="cursor:${isToday?"pointer":"default"}${isToday?"":";opacity:.55"}"><div class="check-circle ${isDone?"done":""}">${isDone?"\u2713":""}</div><div class="task-text ${isDone?"done":""}">${ta.texto}${hasAl?`<span style="font-size:10px;color:var(--accent2);margin-left:5px">${ICON_BELL_ON} ${ta.alarma}</span>`:""}</div><button onclick="event.stopPropagation();editarAlarma('${ta.id}')" class="btn btn-ghost btn-sm btn-icon" style="width:26px;height:26px;min-width:26px;color:${hasAl?\"var(--accent2)\":\"var(--text3)\"" title="${hasAl?"Cambiar alarma":"A\u00f1adir alarma"}">${hasAl?ICON_BELL_ON:ICON_BELL_OFF}</button><button onclick="event.stopPropagation();abrirEditarTarea('${ta.id}')" class="btn btn-ghost btn-sm btn-icon" style="width:26px;height:26px;min-width:26px" title="Editar">${ICON_EDIT}</button><button class="btn btn-danger btn-sm btn-icon" onclick="event.stopPropagation();eliminarTarea('${ta.id}')" style="width:24px;height:24px;font-size:11px;min-width:24px">\u2715</button></div>`;
     }).join("");
     return`<div class="day-column"><div class="day-header"><div class="day-name ${isToday?"today":""}">${dia}${isToday?" \u2022":""}</div>${headerBtns}</div>${taskItems}${tareasD.length===0?`<div style="font-size:12px;color:var(--text3);padding:8px">${L.oblig.no_tasks}</div>`:""}</div>`;
   }).join("");
@@ -2919,9 +2919,8 @@ async function eliminarSemana(id){if(!await appConfirm("Esta acción no se puede
 function descargaPDFSemana(fechaLunes){
   const s=semanas.find(x=>x.fechaLunes===fechaLunes);
   if(!s){toast("❌ Semana no encontrada");return;}
-  const {jsPDF}=window.jspdf;
-  if(!jsPDF){toast("❌ jsPDF no cargado");return;}
-  const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+  if(!window.jsPDF){toast("❌ PDF no disponible, recarga la app");return;}
+  const doc=new window.jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
   const W=210,ml=18,mr=192,cw=W-ml*2;
   // Cabecera
   doc.setFillColor(4,8,15);
@@ -3061,14 +3060,52 @@ function descargaPDFSemana(fechaLunes){
 
 function exportarCSVCredito(){
   const sorted=[...semanas].sort((a,b)=>a.fechaLunes.localeCompare(b.fechaLunes));
-  const rows=[["Semana (lunes)","Horas trabajadas","Horas contractuales","Crédito (h)","Crédito (formato)","Días trabajados","Notas","Registrado el"]];
+  const esc=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;
+  const row=cols=>cols.map(esc).join(",")+"\n";
+  let csv="\uFEFF"; // BOM para Excel
+
+  // ── BLOQUE 1: Resumen por semana ──
+  csv+="RESUMEN DE CRÉDITO HORARIO\n";
+  csv+=row(["Semana (lunes)","H. trabajadas","H. contractuales","Crédito decimal","Crédito (h:mm)","Días trabajados","Notas","Registrado el"]);
   sorted.forEach(s=>{
     const diasTrab=s.horario?.filter(d=>!d.libre&&d.entrada&&d.salida).length||0;
     const regDate=s.registradoEn?new Date(s.registradoEn).toLocaleString("es-ES"):"";
-    rows.push([s.fechaLunes,s.horasAsignadas,s.horasContractuales,(parseFloat(s.diff)||0).toFixed(2),fmtHoras(parseFloat(s.diff)||0),diasTrab,s.notas||"",regDate]);
+    const diff=parseFloat(s.diff)||0;
+    csv+=row([s.fechaLunes,s.horasAsignadas,s.horasContractuales,diff.toFixed(2),fmtHoras(diff),diasTrab,s.notas||"",regDate]);
   });
-  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
-  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+
+  // ── BLOQUE 2: Saldo acumulado ──
+  const totalH=sorted.reduce((s,x)=>s+(parseFloat(x.diff)||0),0);
+  csv+="\n";
+  csv+=row(["SALDO TOTAL ACUMULADO","","","",fmtHoras(totalH),"","",""]);
+
+  // ── BLOQUE 3: Detalle diario ──
+  csv+="\n\nDETALLE DIARIO POR SEMANA\n";
+  csv+=row(["Semana","Día","Fecha","Entrada","Salida","Horas día","Libre"]);
+  sorted.forEach(s=>{
+    if(!s.horario||s.horario.length===0){
+      csv+=row([s.fechaLunes,"(sin horario detallado)","","","","",""]);
+      return;
+    }
+    s.horario.forEach((dia,idx)=>{
+      const fechaDia=new Date(s.fechaLunes);
+      fechaDia.setDate(fechaDia.getDate()+idx);
+      const fechaStr=fechaDia.toLocaleDateString("es-ES");
+      if(dia.libre){
+        csv+=row([s.fechaLunes,dia.dia||"",fechaStr,"","","","Libre"]);
+      } else {
+        let horasDia="";
+        if(dia.entrada&&dia.salida){
+          const[eh,em]=dia.entrada.split(":").map(Number);
+          const[sh,sm]=dia.salida.split(":").map(Number);
+          horasDia=((sh*60+sm-(eh*60+em))/60).toFixed(2);
+        }
+        csv+=row([s.fechaLunes,dia.dia||"",fechaStr,dia.entrada||"",dia.salida||"",horasDia,""]);
+      }
+    });
+  });
+
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="credito_horario_"+today()+".csv";a.click();
   toast("📊 CSV descargado");
 }
@@ -3189,14 +3226,13 @@ function hacerTransferencia(){
 }
 function renderFinanzas(){
   const L=T();
-  const vivos=recalcSaldos(); // siempre desde movimientos — nunca se desincroniza
   const privado=(localStorage.getItem('privacyMode')??'1')==='1';
   const mask=v=>privado?'••••••':v;
   document.getElementById("finTitle").textContent=L.fin.title;
   document.getElementById("finSub").textContent=L.fin.sub;
-  document.getElementById("saldoEfectivo").textContent=mask(fmtMoney(vivos.efectivo));
-  document.getElementById("saldoBanco").textContent=mask(fmtMoney(vivos.banco));
-  document.getElementById("saldoTotal").textContent=mask(fmtMoney(vivos.efectivo+vivos.banco));
+  document.getElementById("saldoEfectivo").textContent=mask(fmtMoney(saldos.efectivo));
+  document.getElementById("saldoBanco").textContent=mask(fmtMoney(saldos.banco));
+  document.getElementById("saldoTotal").textContent=mask(fmtMoney(saldos.efectivo+saldos.banco));
   const eyeBtn=document.getElementById("finEyeBtn");
   if(eyeBtn)eyeBtn.innerHTML=eyeIcon(!privado);
   // Mini monthly summary
@@ -3220,11 +3256,17 @@ function renderMovimientos(){
   const L=T();
   const tipoF=document.getElementById("finFiltroTipo")?.value||"";
   const cuentaF=document.getElementById("finFiltroCuenta")?.value||"";
-  const mesF=document.getElementById("finFiltroMes")?.value||"";
-  const busq=(document.getElementById("finBusqueda")?.value||"").toLowerCase().trim();
-  const mesesDisp=[...new Set(movimientos.map(m=>m.fecha?.substr(0,7)))].filter(Boolean).sort().reverse();
+  const mesActualStr=localMonth();
   const mesSelect=document.getElementById("finFiltroMes");
-  if(mesSelect){const cur=mesSelect.value;mesSelect.innerHTML=`<option value="">${L.fin.all_months}</option>`+mesesDisp.map(m=>`<option ${m===cur?"selected":""} value="${m}">${m}</option>`).join("");}
+  const mesesDisp=[...new Set(movimientos.map(m=>m.fecha?.substr(0,7)))].filter(Boolean).sort().reverse();
+  // Default al mes actual si no hay filtro seleccionado
+  if(mesSelect){
+    const cur=mesSelect.value;
+    mesSelect.innerHTML=`<option value="">${L.fin.all_months}</option>`+mesesDisp.map(m=>`<option ${m===cur?"selected":""} value="${m}">${m}</option>`).join("");
+    if(!cur&&mesesDisp.includes(mesActualStr))mesSelect.value=mesActualStr;
+  }
+  const mesF=mesSelect?.value||"";
+  const busq=(document.getElementById("finBusqueda")?.value||"").toLowerCase().trim();
   let filtered=[...movimientos];
   if(tipoF)filtered=filtered.filter(m=>m.tipo===tipoF);
   if(cuentaF)filtered=filtered.filter(m=>m.cuenta===cuentaF);
@@ -3235,45 +3277,35 @@ function renderMovimientos(){
     document.getElementById("movimientosList").innerHTML=`<div class="empty-state"><div class="empty-icon">○</div><p>${L.fin.no_movements}</p></div>`;
     return;
   }
-  // Group by date label
-  const todayStr=today();
-  const yesterdayStr=(()=>{const yd=new Date(Date.now()-864e5);return yd.getFullYear()+"-"+String(yd.getMonth()+1).padStart(2,"0")+"-"+String(yd.getDate()).padStart(2,"0");})();
-  const thisWeekStr=(()=>{const wk=new Date(Date.now()-7*864e5);return wk.getFullYear()+"-"+String(wk.getMonth()+1).padStart(2,"0")+"-"+String(wk.getDate()).padStart(2,"0");})();
-  const thisMonthStr=localMonth();
-  function dateLabel(fecha){
-    if(fecha===todayStr)return L.common.today;
-    if(fecha===yesterdayStr)return L.common.yesterday;
-    if(fecha>=thisWeekStr)return L.common.this_week;
-    if(fecha?.substr(0,7)===thisMonthStr)return L.common.this_month;
-    const d=new Date(fecha);
-    return d.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
-  }
-  // Grouping
+  // Group by month for clean organisation
   const groupMap={};
   const groupOrder=[];
   filtered.forEach(m=>{
-    const lbl=dateLabel(m.fecha);
-    if(!groupMap[lbl]){groupMap[lbl]=[];groupOrder.push(lbl);}
-    groupMap[lbl].push(m);
+    const mes=m.fecha?.substr(0,7)||"Sin fecha";
+    if(!groupMap[mes]){groupMap[mes]=[];groupOrder.push(mes);}
+    groupMap[mes].push(m);
   });
   let html="";
-  groupOrder.forEach(lbl=>{
-    const items=groupMap[lbl];
+  groupOrder.forEach(mes=>{
+    const items=groupMap[mes];
     const groupTotal=items.reduce((s,m)=>s+(m.tipo==="ingreso"?m.cantidad:-m.cantidad),0);
-    html+=`<div style="margin-bottom:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 2px">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--text3);text-transform:uppercase">${lbl}</div>
+    const mesLabel=mes!=="Sin fecha"?new Date(mes+"-01").toLocaleDateString("es-ES",{month:"long",year:"numeric"}).replace(/^\w/,c=>c.toUpperCase()):mes;
+    html+=`<div style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 2px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--text3);text-transform:uppercase">${mesLabel}</div>
         <div style="font-size:11px;font-weight:600;color:${groupTotal>=0?"var(--green)":"var(--red)"}">${groupTotal>=0?"+":""}${fmtMoney(groupTotal)}</div>
       </div>`;
     items.forEach(m=>{
       const ingreso=m.tipo==="ingreso";
       const accentColor=ingreso?"var(--green)":"var(--red)";
       const bgColor=ingreso?"rgba(45,212,160,.1)":"rgba(224,92,92,.1)";
-      html+=`<div class="transaction-item" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;transition:border-color .15s">
+      // Fecha formateada del ítem
+      const fechaStr=m.fecha?new Date(m.fecha+"T12:00:00").toLocaleDateString("es-ES",{day:"numeric",month:"short"}):"";
+      html+=`<div class="transaction-item" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:8px">
         <div style="width:36px;height:36px;border-radius:10px;background:${bgColor};color:${accentColor};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${ingreso?"↑":"↓"}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:500;color:var(--text);${!m.desc?"opacity:.4":""}">${m.desc||L.common.no_desc}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">${m.categoria} · ${m.cuenta==="efectivo"?L.accounts.cash:L.accounts.bank}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${m.categoria} · ${m.cuenta==="efectivo"?L.accounts.cash:L.accounts.bank}${fechaStr?" · "+fechaStr:""}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           <div style="font-size:15px;font-weight:700;font-family:var(--font-display);color:${accentColor}">${ingreso?"+":"-"}${fmtMoney(m.cantidad)}</div>
@@ -3431,13 +3463,18 @@ async function eliminarMovimiento(id){
   if(!await appConfirm("El movimiento se guardará en la papelera y podrás consultarlo.",{title:"Borrar movimiento",icon:"🗑️",okLabel:"Borrar",okClass:"btn-danger"}))return;
   const m=movimientos.find(mv=>mv.id===id);
   if(m){
+    // Revertir saldo guardado
+    if(m.tipo==="ingreso")saldos[m.cuenta]=(saldos[m.cuenta]||0)-m.cantidad;
+    else saldos[m.cuenta]=(saldos[m.cuenta]||0)+m.cantidad;
+    S.set("saldos",saldos);
+    // Mover a papelera
     eliminados.push({...m,eliminadoEn:new Date().toISOString()});
     S.set("eliminados",eliminados);
   }
   movimientos=movimientos.filter(mv=>mv.id!==id);
   S.set("movimientos",movimientos);
   if(currentUser){
-    db.doc("compartido/finanzas").set({movimientos},{merge:true}).catch(e=>console.warn(e));
+    db.doc("compartido/finanzas").set({movimientos,saldos},{merge:true}).catch(e=>console.warn(e));
     lastLocalSave=Date.now()+5000;
   }
   renderFinanzas();
@@ -3452,11 +3489,15 @@ async function restaurarMovimiento(id){
   const m=eliminados.find(x=>x.id===id);
   if(!m)return;
   const{eliminadoEn,...original}=m;
+  // Restaurar saldo
+  if(original.tipo==="ingreso")saldos[original.cuenta]=(saldos[original.cuenta]||0)+original.cantidad;
+  else saldos[original.cuenta]=(saldos[original.cuenta]||0)-original.cantidad;
+  S.set("saldos",saldos);
   movimientos.push(original);
   eliminados=eliminados.filter(x=>x.id!==id);
   S.set("movimientos",movimientos);S.set("eliminados",eliminados);
   if(currentUser){
-    db.doc("compartido/finanzas").set({movimientos},{merge:true}).catch(e=>console.warn(e));
+    db.doc("compartido/finanzas").set({movimientos,saldos},{merge:true}).catch(e=>console.warn(e));
     lastLocalSave=Date.now()+5000;
   }
   renderPapelera();renderFinanzas();
@@ -4112,7 +4153,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260402v60';
+const CURRENT_CACHE = 'mivida-20260402v61';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
