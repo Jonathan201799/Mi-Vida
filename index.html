@@ -2200,7 +2200,7 @@ function renderSemanal(){
     const taskItems=tareasD.map(ta=>{
       const isDone=isToday&&completadas[semana+"_"+ta.id];
       const hasAl=ta.alarma&&ta.alarma.length>0;
-      return`<div class="task-item" onclick="${isToday?`toggleTarea('${ta.id}')`:""}" style="cursor:${isToday?"pointer":"default"}${isToday?"":";opacity:.55"}"><div class="check-circle ${isDone?"done":""}">${isDone?"\u2713":""}</div><div class="task-text ${isDone?"done":""}">${ta.texto}${hasAl?`<span style="font-size:10px;color:var(--accent2);margin-left:5px">${ICON_BELL_ON} ${ta.alarma}</span>`:""}</div><button onclick="event.stopPropagation();editarAlarma('${ta.id}')" class="btn btn-ghost btn-sm btn-icon" style="width:26px;height:26px;min-width:26px;color:${hasAl?\"var(--accent2)\":\"var(--text3)\"" title="${hasAl?"Cambiar alarma":"A\u00f1adir alarma"}">${hasAl?ICON_BELL_ON:ICON_BELL_OFF}</button><button onclick="event.stopPropagation();abrirEditarTarea('${ta.id}')" class="btn btn-ghost btn-sm btn-icon" style="width:26px;height:26px;min-width:26px" title="Editar">${ICON_EDIT}</button><button class="btn btn-danger btn-sm btn-icon" onclick="event.stopPropagation();eliminarTarea('${ta.id}')" style="width:24px;height:24px;font-size:11px;min-width:24px">\u2715</button></div>`;
+      return`<div class="task-item" onclick="${isToday?`toggleTarea('${ta.id}')`:""}" style="cursor:${isToday?"pointer":"default"}${isToday?"":";opacity:.55"}"><div class="check-circle ${isDone?"done":""}">${isDone?"\u2713":""}</div><div class="task-text ${isDone?"done":""}">${ta.texto}${hasAl?`<span style="font-size:10px;color:var(--accent2);margin-left:5px">${ICON_BELL_ON} ${ta.alarma}</span>`:""}</div><button onclick="event.stopPropagation();editarAlarma('${ta.id}')" class="btn btn-ghost btn-sm btn-icon" style="width:26px;height:26px;min-width:26px;color:${hasAl?'var(--accent2)':'var(--text3)'} title="${hasAl?"Cambiar alarma":"A\u00f1adir alarma"}">${hasAl?ICON_BELL_ON:ICON_BELL_OFF}</button><button onclick="event.stopPropagation();abrirEditarTarea('${ta.id}')" class="btn btn-ghost btn-sm btn-icon" style="width:26px;height:26px;min-width:26px" title="Editar">${ICON_EDIT}</button><button class="btn btn-danger btn-sm btn-icon" onclick="event.stopPropagation();eliminarTarea('${ta.id}')" style="width:24px;height:24px;font-size:11px;min-width:24px">\u2715</button></div>`;
     }).join("");
     return`<div class="day-column"><div class="day-header"><div class="day-name ${isToday?"today":""}">${dia}${isToday?" \u2022":""}</div>${headerBtns}</div>${taskItems}${tareasD.length===0?`<div style="font-size:12px;color:var(--text3);padding:8px">${L.oblig.no_tasks}</div>`:""}</div>`;
   }).join("");
@@ -4153,7 +4153,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260402v61';
+const CURRENT_CACHE = 'mivida-20260402v62';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
