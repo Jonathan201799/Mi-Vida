@@ -742,8 +742,8 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
           </button>
         </div>
         <div class="dash-hero-accounts" style="margin-bottom:20px">
-          <div class="dash-hero-account"><span id="finLabelEfectivo">Efectivo</span> <span id="saldoEfectivo">0,00€</span></div>
-          <div class="dash-hero-account"><span id="finLabelBanco">Banco</span> <span id="saldoBanco">0,00€</span></div>
+          <div class="dash-hero-account" style="display:flex;align-items:center;gap:8px"><span id="finLabelEfectivo">Efectivo</span> <span id="saldoEfectivo">0,00€</span><button onclick="openModalAjustarSaldo('efectivo')" title="Corregir saldo efectivo" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:2px 6px;font-size:10px;color:rgba(255,255,255,.6);cursor:pointer;flex-shrink:0">✏️</button></div>
+          <div class="dash-hero-account" style="display:flex;align-items:center;gap:8px"><span id="finLabelBanco">Banco</span> <span id="saldoBanco">0,00€</span><button onclick="openModalAjustarSaldo('banco')" title="Corregir saldo banco" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:2px 6px;font-size:10px;color:rgba(255,255,255,.6);cursor:pointer;flex-shrink:0">✏️</button></div>
         </div>
         <!-- Quick actions -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
@@ -859,30 +859,46 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
       </div>
     </div>
 
-    <!-- MODAL AHORROS -->
-    <div class="modal-overlay" id="modalAhorro"><div class="modal">
-      <div class="modal-header"><div class="modal-title" id="modalAhorroTitle">🏦 Nuevo Ahorro</div><button class="modal-close" onclick="closeModal('modalAhorro')">✕</button></div>
+    <div class="modal-overlay" id="modalAjustarSaldo"><div class="modal">
+      <div class="modal-header"><div class="modal-title" id="modalAjustarTitle">✏️ Corregir saldo</div><button class="modal-close" onclick="closeModal('modalAjustarSaldo')">✕</button></div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:16px" id="modalAjustarSub">Introduce el saldo real actual. Esto sobrescribe el valor sin registrar un movimiento.</div>
       <div class="input-group">
-        <div class="input-label">CANTIDAD</div>
-        <input type="number" id="ahorroMonto" placeholder="0.00" step="0.01" min="0">
+        <div class="input-label">SALDO ACTUAL</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text3);padding:8px 0" id="modalAjustarActual">0,00€</div>
       </div>
       <div class="input-group">
-        <div class="input-label">TIPO</div>
-        <div style="display:flex;gap:8px;margin-top:4px">
-          <button id="ahorroTipoEfectivo" onclick="setAhorroTipo('efectivo')" style="flex:1;padding:10px;border-radius:8px;border:2px solid var(--green);background:var(--green-bg);color:var(--green);font-weight:600;cursor:pointer;font-size:13px">💵 Efectivo</button>
-          <button id="ahorroTipoTarjeta" onclick="setAhorroTipo('tarjeta')" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-weight:600;cursor:pointer;font-size:13px">💳 Tarjeta</button>
+        <div class="input-label">NUEVO SALDO CORRECTO</div>
+        <input type="number" id="ajustarSaldoValor" placeholder="0.00" step="0.01">
+      </div>
+      <input type="hidden" id="ajustarSaldoCuenta">
+      <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="confirmarAjusteSaldo()">Aplicar corrección</button>
+    </div></div><div class="modal" style="padding-bottom:0">
+      <div class="modal-header"><div class="modal-title" id="modalAhorroTitle">🏦 Nuevo Ahorro</div><button class="modal-close" onclick="closeModal('modalAhorro')">✕</button></div>
+      <div style="overflow-y:auto;padding-bottom:8px">
+        <div class="input-group" style="margin-bottom:12px">
+          <div class="input-label">CANTIDAD</div>
+          <input type="number" id="ahorroMonto" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div class="input-group" style="margin-bottom:12px">
+          <div class="input-label">TIPO</div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button id="ahorroTipoEfectivo" onclick="setAhorroTipo('efectivo')" style="flex:1;padding:10px;border-radius:8px;border:2px solid var(--green);background:var(--green-bg);color:var(--green);font-weight:600;cursor:pointer;font-size:13px">💵 Efectivo</button>
+            <button id="ahorroTipoTarjeta" onclick="setAhorroTipo('tarjeta')" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-weight:600;cursor:pointer;font-size:13px">💳 Tarjeta</button>
+          </div>
+        </div>
+        <div class="input-group" style="margin-bottom:12px">
+          <div class="input-label">DESCRIPCIÓN (opcional)</div>
+          <input type="text" id="ahorroDesc" placeholder="Ej: Paga semanal, regalo...">
+        </div>
+        <div class="input-group" style="margin-bottom:4px">
+          <div class="input-label">FECHA</div>
+          <input type="date" id="ahorroFecha">
         </div>
       </div>
-      <div class="input-group">
-        <div class="input-label">DESCRIPCIÓN (opcional)</div>
-        <input type="text" id="ahorroDesc" placeholder="Ej: Paga semanal, regalo...">
-      </div>
-      <div class="input-group">
-        <div class="input-label">FECHA</div>
-        <input type="date" id="ahorroFecha">
-      </div>
       <input type="hidden" id="ahorroEditId">
-      <button class="btn btn-primary" style="width:100%" onclick="guardarAhorro()">Guardar</button>
+      <div style="position:sticky;bottom:0;background:var(--bg2);padding:12px 0 calc(12px + env(safe-area-inset-bottom))">
+        <button class="btn btn-primary" style="width:100%" onclick="guardarAhorro()">Guardar</button>
+      </div>
     </div></div>
 
     <!-- NOTAS -->
@@ -3251,6 +3267,27 @@ function financeTab(tab,btn){
   if(tab==="ahorros")renderAhorros();
 }
 
+// ── AJUSTE DIRECTO DE SALDO ──────────────────────────────
+function openModalAjustarSaldo(cuenta){
+  const nombre=cuenta==="efectivo"?"Efectivo":"Banco";
+  document.getElementById("modalAjustarTitle").textContent="✏️ Corregir saldo — "+nombre;
+  document.getElementById("modalAjustarSub").textContent="Introduce el saldo real actual. Esto sobrescribe el valor sin registrar un movimiento.";
+  document.getElementById("modalAjustarActual").textContent=(saldos[cuenta]||0).toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})+"€";
+  document.getElementById("ajustarSaldoValor").value="";
+  document.getElementById("ajustarSaldoCuenta").value=cuenta;
+  openModal("modalAjustarSaldo");
+}
+function confirmarAjusteSaldo(){
+  const cuenta=document.getElementById("ajustarSaldoCuenta").value;
+  const valor=parseFloat(document.getElementById("ajustarSaldoValor").value);
+  if(isNaN(valor)){toast("Introduce un valor válido");return;}
+  saldos[cuenta]=valor;
+  S.set("saldos",saldos);
+  closeModal("modalAjustarSaldo");
+  renderFinanzas();
+  toast("✅ Saldo corregido");
+}
+
 // ── AHORROS ──────────────────────────────────────────────
 function setAhorroTipo(tipo){
   ahorroTipoActual=tipo;
@@ -4353,14 +4390,16 @@ async function enviarReporte(){
   if(!txt){status.textContent="Escribe una descripción antes de enviar.";status.style.color="var(--red)";return;}
   status.textContent="Enviando...";status.style.color="var(--text3)";
   try{
-    await db.collection("bugs").add({
-      uid:auth.currentUser?.uid||"anon",
-      email:auth.currentUser?.email||"",
+    const reportes=S.get("reportes")||[];
+    reportes.push({
       mensaje:txt,
       fecha:new Date().toISOString(),
-      version:"v5.6",
+      version:"v6.3",
       ua:navigator.userAgent.substring(0,120)
     });
+    // Guardar en el documento privado del usuario (permitido por las reglas de Firestore)
+    await db.doc("usuarios/"+currentUser.uid).set({reportes},{merge:true});
+    localStorage.setItem("mivida_reportes",JSON.stringify(reportes));
     document.getElementById("bugReportText").value="";
     status.textContent="✅ Reporte enviado. ¡Gracias!";
     status.style.color="var(--green)";
@@ -4371,7 +4410,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260403b';
+const CURRENT_CACHE = 'mivida-20260403c';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
