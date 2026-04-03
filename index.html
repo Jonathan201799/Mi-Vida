@@ -449,6 +449,7 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
 .dia-tipo-btn.active-normal{border-color:var(--accent2);background:rgba(123,82,255,.12);color:var(--accent2)}
 .dia-tipo-btn.active-nl{border-color:rgba(232,160,32,.8);background:rgba(232,160,32,.12);color:#e8a00a}
 .dia-tipo-btn.active-vac{border-color:rgba(99,179,237,.8);background:rgba(99,179,237,.12);color:#63b3ed}
+.dia-tipo-btn.active-libre{border-color:rgba(16,185,129,.8);background:rgba(16,185,129,.12);color:#10b981}
 .semana-day-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .semana-time-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 .semana-time-label{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
@@ -2937,6 +2938,7 @@ function buildDiaInputs(fechaLunes){
         <div style="display:flex;gap:4px">
           <button class="dia-tipo-btn active-normal" id="diaBtn_normal_${i}" onclick="setDiaTipo(${i},'normal')">Normal</button>
           <button class="dia-tipo-btn" id="diaBtn_nl_${i}" onclick="setDiaTipo(${i},'nl')">NL</button>
+          <button class="dia-tipo-btn" id="diaBtn_libre_${i}" onclick="setDiaTipo(${i},'libre')">📅 Libre</button>
           <button class="dia-tipo-btn" id="diaBtn_vac_${i}" onclick="setDiaTipo(${i},'vacaciones')">🏖 Vac.</button>
         </div>
       </div>
@@ -2949,15 +2951,16 @@ function buildDiaInputs(fechaLunes){
 }
 function getDiaTipo(i){
   if(document.getElementById("diaBtn_nl_"+i)?.classList.contains("active-nl"))return"nl";
+  if(document.getElementById("diaBtn_libre_"+i)?.classList.contains("active-libre"))return"libre";
   if(document.getElementById("diaBtn_vac_"+i)?.classList.contains("active-vac"))return"vacaciones";
   return"normal";
 }
 function setDiaTipo(i,tipo){
-  ["normal","nl","vacaciones"].forEach(t=>{
+  ["normal","nl","libre","vacaciones"].forEach(t=>{
     const btn=document.getElementById("diaBtn_"+t+"_"+i);
-    if(btn){btn.classList.remove("active-normal","active-nl","active-vac");}
+    if(btn){btn.classList.remove("active-normal","active-nl","active-libre","active-vac");}
   });
-  const activeClass=tipo==="nl"?"active-nl":tipo==="vacaciones"?"active-vac":"active-normal";
+  const activeClass=tipo==="nl"?"active-nl":tipo==="libre"?"active-libre":tipo==="vacaciones"?"active-vac":"active-normal";
   const activeBtn=document.getElementById("diaBtn_"+tipo+"_"+i);
   if(activeBtn)activeBtn.classList.add(activeClass);
   applyDiaTipo(i,tipo);
@@ -2967,6 +2970,7 @@ function applyDiaTipo(i,tipo){
   const row=document.getElementById("dayrow_"+i),inputs=document.getElementById("dia_inputs_"+i);
   row.classList.remove("libre","nl","vacaciones");
   if(tipo==="nl"){row.classList.add("nl");inputs.style.display="none";}
+  else if(tipo==="libre"){row.classList.add("libre");inputs.style.display="none";}
   else if(tipo==="vacaciones"){row.classList.add("vacaciones");inputs.style.display="none";}
   else{inputs.style.display="grid";}
 }
@@ -3180,9 +3184,9 @@ function descargaPDFSemana(fechaLunes){
     if(_diaTipo!=="normal"){
       doc.setTextColor(26,37,64);
       doc.text(dia.dia||"—",ml+3,y+5.5);
-      doc.setTextColor(_diaTipo==="vacaciones"?[99,179,237]:[217,119,6]);
+      doc.setTextColor(_diaTipo==="vacaciones"?[99,179,237]:_diaTipo==="libre"?[16,185,129]:[217,119,6]);
       doc.text("—",ml+42,y+5.5);
-      doc.text(_diaTipo==="vacaciones"?"Vacaciones":"NL – No laborable",ml+148,y+5.5);
+      doc.text(_diaTipo==="vacaciones"?"Vacaciones":_diaTipo==="libre"?"Día Libre":"NL – No laborable",ml+148,y+5.5);
     } else {
       doc.setTextColor(26,37,64);
       doc.text(dia.dia||"—",ml+3,y+5.5);
@@ -4517,7 +4521,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260404';
+const CURRENT_CACHE = 'mivida-20260404b';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
