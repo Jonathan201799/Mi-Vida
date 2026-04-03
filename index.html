@@ -669,14 +669,14 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
 
     <!-- CRÉDITO HORARIO -->
     <div class="section-view" id="sec-credito">
-      <div class="sec-hero">
-        <div class="sec-hero-left">
-          <div class="sec-hero-title" id="creditTitle">Crédito Horario</div>
-          <div class="sec-hero-sub" id="creditSub">Sistema semanal — horas a favor y en contra</div>
+      <div class="sec-hero" style="flex-wrap:nowrap;gap:10px">
+        <div class="sec-hero-left" style="min-width:0;flex:1">
+          <div class="sec-hero-title" id="creditTitle" style="font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Crédito Horario</div>
+          <div class="sec-hero-sub" id="creditSub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Sistema semanal — horas a favor y en contra</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;position:relative;z-index:1;flex-shrink:0">
-          <button class="btn btn-ghost" style="font-size:11px;gap:5px;padding:7px 11px;white-space:nowrap" onclick="exportarCSVCredito()" title="Exportar CSV">📊 CSV</button>
-          <button class="btn sec-hero-btn" id="btnAddSemana" onclick="openModal('modalRegistrarSemana')" style="white-space:nowrap">+ Semana</button>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;position:relative;z-index:1">
+          <button class="btn btn-ghost" style="font-size:11px;padding:7px 10px;white-space:nowrap;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7)" onclick="exportarCSVCredito()" title="Exportar CSV">📊 CSV</button>
+          <button class="btn sec-hero-btn" id="btnAddSemana" onclick="openModal('modalRegistrarSemana')" style="white-space:nowrap;padding:7px 12px;font-size:12px">+ Semana</button>
         </div>
       </div>
       <!-- RESUMEN RÁPIDO -->
@@ -834,6 +834,8 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
 
       <!-- AHORROS -->
       <div id="finAhorros" style="display:none">
+        <!-- Botón añadir — arriba para que siempre sea visible -->
+        <button class="btn btn-primary" style="width:100%;margin-bottom:16px" onclick="openModalAhorro()">+ Añadir ahorro</button>
         <!-- Resumen KPIs -->
         <div class="grid-3" style="margin-bottom:16px">
           <div class="stat-card" style="text-align:center">
@@ -852,8 +854,6 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
             <div class="stat-sub">En cuenta</div>
           </div>
         </div>
-        <!-- Botón añadir -->
-        <button class="btn btn-primary" style="width:100%;margin-bottom:16px" onclick="openModalAhorro()">+ Añadir ahorro</button>
         <!-- Lista -->
         <div id="ahorrosList"></div>
       </div>
@@ -2977,8 +2977,9 @@ async function eliminarSemana(id){if(!await appConfirm("Esta acción no se puede
 function descargaPDFSemana(fechaLunes){
   const s=semanas.find(x=>x.fechaLunes===fechaLunes);
   if(!s){toast("❌ Semana no encontrada");return;}
-  if(!window.jsPDF){toast("❌ PDF no disponible, recarga la app");return;}
-  const doc=new window.jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+  const jsPDFCtor=window.jsPDF||(window.jspdf&&window.jspdf.jsPDF);
+  if(!jsPDFCtor){toast("❌ PDF no disponible, recarga la app");return;}
+  const doc=new jsPDFCtor({orientation:"portrait",unit:"mm",format:"a4"});
   const W=210,ml=18,mr=192,cw=W-ml*2;
   // Cabecera oscura
   doc.setFillColor(15,24,41);
@@ -3292,24 +3293,44 @@ function guardarAhorro(){
   const desc=document.getElementById("ahorroDesc").value.trim();
   const fecha=document.getElementById("ahorroFecha").value||new Date().toISOString().slice(0,10);
   const editId=document.getElementById("ahorroEditId").value;
+  const cuentaKey=ahorroTipoActual==="efectivo"?"efectivo":"banco";
+
   if(editId){
     const idx=ahorros.findIndex(x=>x.id===editId);
-    if(idx>-1){ahorros[idx]={...ahorros[idx],cantidad,tipo:ahorroTipoActual,descripcion:desc,fecha};}
+    if(idx>-1){
+      const anterior=ahorros[idx];
+      // Devolver importe anterior a su cuenta original
+      const cuentaAnterior=anterior.tipo==="efectivo"?"efectivo":"banco";
+      saldos[cuentaAnterior]=(saldos[cuentaAnterior]||0)+anterior.cantidad;
+      // Descontar nuevo importe de la cuenta nueva
+      saldos[cuentaKey]=(saldos[cuentaKey]||0)-cantidad;
+      ahorros[idx]={...anterior,cantidad,tipo:ahorroTipoActual,descripcion:desc,fecha};
+    }
     toast("✅ Ahorro actualizado");
   } else {
+    saldos[cuentaKey]=(saldos[cuentaKey]||0)-cantidad;
     ahorros.push({id:"ah_"+Date.now(),cantidad,tipo:ahorroTipoActual,descripcion:desc,fecha});
     toast("✅ Ahorro registrado");
   }
   S.set("ahorros",ahorros);
+  S.set("saldos",saldos);
   closeModal("modalAhorro");
   renderAhorros();
+  renderFinanzas();
 }
 
 async function eliminarAhorro(id){
   if(!await appConfirm("¿Eliminar este ahorro?",{title:"Eliminar ahorro",icon:"🗑️",okLabel:"Eliminar",okClass:"btn-danger"}))return;
+  const a=ahorros.find(x=>x.id===id);
+  if(a){
+    const cuentaKey=a.tipo==="efectivo"?"efectivo":"banco";
+    saldos[cuentaKey]=(saldos[cuentaKey]||0)+a.cantidad;
+    S.set("saldos",saldos);
+  }
   ahorros=ahorros.filter(x=>x.id!==id);
   S.set("ahorros",ahorros);
   renderAhorros();
+  renderFinanzas();
   toast("🗑️ Ahorro eliminado");
 }
 
@@ -4350,7 +4371,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260403a';
+const CURRENT_CACHE = 'mivida-20260403b';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
