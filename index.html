@@ -862,49 +862,43 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
     <!-- MODAL CORREGIR SALDO -->
     <div class="modal-overlay" id="modalAjustarSaldo"><div class="modal">
       <div class="modal-header"><div class="modal-title" id="modalAjustarTitle">✏️ Corregir saldo</div><button class="modal-close" onclick="closeModal('modalAjustarSaldo')">✕</button></div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:16px" id="modalAjustarSub">Introduce el saldo real actual. Esto sobrescribe el valor sin registrar un movimiento.</div>
-      <div class="input-group">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px" id="modalAjustarSub">Introduce el saldo real actual. Sobrescribe el valor sin registrar un movimiento.</div>
+      <div class="input-group" style="margin-bottom:10px">
         <div class="input-label">SALDO ACTUAL</div>
-        <div style="font-size:20px;font-weight:700;color:var(--text3);padding:8px 0" id="modalAjustarActual">0,00€</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text3);padding:6px 0" id="modalAjustarActual">0,00€</div>
       </div>
-      <div class="input-group">
+      <div class="input-group" style="margin-bottom:16px">
         <div class="input-label">NUEVO SALDO CORRECTO</div>
         <input type="number" id="ajustarSaldoValor" placeholder="0.00" step="0.01">
       </div>
       <input type="hidden" id="ajustarSaldoCuenta">
-      <div style="position:sticky;bottom:0;background:var(--bg2);padding:12px 0 calc(12px + env(safe-area-inset-bottom))">
-        <button class="btn btn-primary" style="width:100%" onclick="confirmarAjusteSaldo()">Aplicar corrección</button>
-      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="confirmarAjusteSaldo()">Aplicar corrección</button>
     </div></div>
 
     <!-- MODAL AHORROS -->
-    <div class="modal-overlay" id="modalAhorro"><div class="modal" style="padding-bottom:0">
+    <div class="modal-overlay" id="modalAhorro"><div class="modal">
       <div class="modal-header"><div class="modal-title" id="modalAhorroTitle">🏦 Nuevo Ahorro</div><button class="modal-close" onclick="closeModal('modalAhorro')">✕</button></div>
-      <div style="overflow-y:auto;padding-bottom:8px">
-        <div class="input-group" style="margin-bottom:12px">
-          <div class="input-label">CANTIDAD</div>
-          <input type="number" id="ahorroMonto" placeholder="0.00" step="0.01" min="0">
+      <div class="input-group" style="margin-bottom:10px">
+        <div class="input-label">CANTIDAD</div>
+        <input type="number" id="ahorroMonto" placeholder="0.00" step="0.01" min="0">
+      </div>
+      <div style="margin-bottom:10px">
+        <div class="input-label" style="margin-bottom:6px">TIPO</div>
+        <div style="display:flex;gap:8px">
+          <button id="ahorroTipoEfectivo" onclick="setAhorroTipo('efectivo')" style="flex:1;padding:9px;border-radius:8px;border:2px solid var(--green);background:var(--green-bg);color:var(--green);font-weight:600;cursor:pointer;font-size:13px">💵 Efectivo</button>
+          <button id="ahorroTipoTarjeta" onclick="setAhorroTipo('tarjeta')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-weight:600;cursor:pointer;font-size:13px">💳 Tarjeta</button>
         </div>
-        <div class="input-group" style="margin-bottom:12px">
-          <div class="input-label">TIPO</div>
-          <div style="display:flex;gap:8px;margin-top:4px">
-            <button id="ahorroTipoEfectivo" onclick="setAhorroTipo('efectivo')" style="flex:1;padding:10px;border-radius:8px;border:2px solid var(--green);background:var(--green-bg);color:var(--green);font-weight:600;cursor:pointer;font-size:13px">💵 Efectivo</button>
-            <button id="ahorroTipoTarjeta" onclick="setAhorroTipo('tarjeta')" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-weight:600;cursor:pointer;font-size:13px">💳 Tarjeta</button>
-          </div>
-        </div>
-        <div class="input-group" style="margin-bottom:12px">
-          <div class="input-label">DESCRIPCIÓN (opcional)</div>
-          <input type="text" id="ahorroDesc" placeholder="Ej: Paga semanal, regalo...">
-        </div>
-        <div class="input-group" style="margin-bottom:4px">
-          <div class="input-label">FECHA</div>
-          <input type="date" id="ahorroFecha">
-        </div>
+      </div>
+      <div class="input-group" style="margin-bottom:10px">
+        <div class="input-label">DESCRIPCIÓN (opcional)</div>
+        <input type="text" id="ahorroDesc" placeholder="Ej: Paga semanal, regalo...">
+      </div>
+      <div class="input-group" style="margin-bottom:16px">
+        <div class="input-label">FECHA</div>
+        <input type="date" id="ahorroFecha">
       </div>
       <input type="hidden" id="ahorroEditId">
-      <div style="position:sticky;bottom:0;background:var(--bg2);padding:12px 0 calc(12px + env(safe-area-inset-bottom))">
-        <button class="btn btn-primary" style="width:100%" onclick="guardarAhorro()">Guardar</button>
-      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="guardarAhorro()">Guardar</button>
     </div></div>
 
     <!-- NOTAS -->
@@ -4416,7 +4410,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260403d';
+const CURRENT_CACHE = 'mivida-20260403e';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
