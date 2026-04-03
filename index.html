@@ -1343,7 +1343,7 @@ let currentUser=null;
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
 // Claves compartidas entre los dos usuarios (finanzas)
-const SHARED_KEYS=new Set(["movimientos","presupuesto","saldos","presupuestoCatTs"]);
+const SHARED_KEYS=new Set(["movimientos","presupuesto","saldos","presupuestoCatTs","ahorros"]);
 
 // Keys that must be flushed to Firebase immediately (no debounce)
 const CRITICAL_KEYS=new Set(["semanas","tareas","completadas","metas","eventos"]);
@@ -1550,7 +1550,7 @@ auth.onAuthStateChanged(async user=>{
       if(!snap.exists||!currentUser)return;
       if(Date.now()-lastLocalSave<3000)return;
       const data=snap.data();
-      const privateKeys=["semanas","tareas","completadas","metas","eventos","pendientes","notasLibres","listas","contactos","datosPersonales","ideas","documentos","passwords","ajustes","ahorros"];
+      const privateKeys=["semanas","tareas","completadas","metas","eventos","pendientes","notasLibres","listas","contactos","datosPersonales","ideas","documentos","passwords","ajustes"];
       let changed=false;
       privateKeys.forEach(k=>{
         if(data[k]!==undefined){
@@ -1608,6 +1608,7 @@ auth.onAuthStateChanged(async user=>{
         movimientos=S.get("movimientos")||[];
         presupuesto=S.get("presupuesto")||{};
         saldos=S.get("saldos")||{efectivo:0,banco:0};
+        ahorros=S.get("ahorros")||[];
         if(document.getElementById("sec-finanzas")?.classList.contains("active")){
           renderFinanzas();
         }
@@ -2602,15 +2603,29 @@ async function eliminarMeta(id){if(!await appConfirm("Esta acción no se puede d
 // ═══════════════════════════════════════════════════════
 const eventCatColors={personal:"#2563eb",trabajo:"#ef4444",salud:"#10b981",finanzas:"#e8920a",viajes:"#8b5cf6",casa:"#f97316",cumpleanos:"#ec4899",examen:"#06b6d4",otro:"#3d5c7a"};
 let currentCalTab="mensual";
+let currentCalFiltro="";
 let calWeekOffset=0;
 
+function getEventosFiltrados(){
+  return currentCalFiltro?eventos.filter(e=>e.categoria===currentCalFiltro):eventos;
+}
+function setCalFiltro(cat,btn){
+  currentCalFiltro=cat;
+  document.querySelectorAll("#calFiltroWrap .tab-btn").forEach(b=>b.classList.remove("active"));
+  if(btn)btn.classList.add("active");
+  renderCalendario();
+}
 function calTab(tab,btn){
   currentCalTab=tab;
-  document.querySelectorAll("#tabCalMensual,#tabCalSemanal").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll("#tabCalMensual,#tabCalSemanal,#tabCalAgenda").forEach(b=>b.classList.remove("active"));
   if(btn)btn.classList.add("active");
-  document.getElementById("calViewMensual").style.display=tab==="mensual"?"":"none";
-  document.getElementById("calViewSemanal").style.display=tab==="semanal"?"":"none";
+  document.getElementById("calViewMensual").style.display=tab==="mensual"?"block":"none";
+  document.getElementById("calViewSemanal").style.display=tab==="semanal"?"block":"none";
+  document.getElementById("calViewAgenda").style.display=tab==="agenda"?"block":"none";
+  const upSec=document.getElementById("calUpcomingSection");
+  if(upSec)upSec.style.display=tab==="agenda"?"none":"block";
   if(tab==="semanal")renderCalSemanal();
+  else if(tab==="agenda")renderCalAgenda();
   else renderCalMensual();
 }
 
