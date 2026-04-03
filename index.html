@@ -859,6 +859,7 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
       </div>
     </div>
 
+    <!-- MODAL CORREGIR SALDO -->
     <div class="modal-overlay" id="modalAjustarSaldo"><div class="modal">
       <div class="modal-header"><div class="modal-title" id="modalAjustarTitle">✏️ Corregir saldo</div><button class="modal-close" onclick="closeModal('modalAjustarSaldo')">✕</button></div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:16px" id="modalAjustarSub">Introduce el saldo real actual. Esto sobrescribe el valor sin registrar un movimiento.</div>
@@ -871,8 +872,13 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
         <input type="number" id="ajustarSaldoValor" placeholder="0.00" step="0.01">
       </div>
       <input type="hidden" id="ajustarSaldoCuenta">
-      <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="confirmarAjusteSaldo()">Aplicar corrección</button>
-    </div></div><div class="modal" style="padding-bottom:0">
+      <div style="position:sticky;bottom:0;background:var(--bg2);padding:12px 0 calc(12px + env(safe-area-inset-bottom))">
+        <button class="btn btn-primary" style="width:100%" onclick="confirmarAjusteSaldo()">Aplicar corrección</button>
+      </div>
+    </div></div>
+
+    <!-- MODAL AHORROS -->
+    <div class="modal-overlay" id="modalAhorro"><div class="modal" style="padding-bottom:0">
       <div class="modal-header"><div class="modal-title" id="modalAhorroTitle">🏦 Nuevo Ahorro</div><button class="modal-close" onclick="closeModal('modalAhorro')">✕</button></div>
       <div style="overflow-y:auto;padding-bottom:8px">
         <div class="input-group" style="margin-bottom:12px">
@@ -4410,7 +4416,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260403c';
+const CURRENT_CACHE = 'mivida-20260403d';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
