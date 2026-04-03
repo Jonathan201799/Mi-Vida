@@ -443,6 +443,12 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
 .credit-zero{color:var(--text2)}
 .semana-day-row{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;transition:all .15s}
 .semana-day-row.libre{border-color:rgba(232,160,32,.3);background:rgba(232,160,32,.04)}
+.semana-day-row.nl{border-color:rgba(232,160,32,.35);background:rgba(232,160,32,.06)}
+.semana-day-row.vacaciones{border-color:rgba(99,179,237,.35);background:rgba(99,179,237,.06)}
+.dia-tipo-btn{flex:1;padding:6px 4px;border-radius:7px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-weight:600;cursor:pointer;font-size:11px;transition:all .15s}
+.dia-tipo-btn.active-normal{border-color:var(--accent2);background:rgba(123,82,255,.12);color:var(--accent2)}
+.dia-tipo-btn.active-nl{border-color:rgba(232,160,32,.8);background:rgba(232,160,32,.12);color:#e8a00a}
+.dia-tipo-btn.active-vac{border-color:rgba(99,179,237,.8);background:rgba(99,179,237,.12);color:#63b3ed}
 .semana-day-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .semana-time-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 .semana-time-label{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
@@ -632,9 +638,20 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
         <button class="btn sec-hero-btn" id="btnAddEvento" onclick="openModal('modalNuevoEvento')">+ Evento</button>
       </div>
       <!-- Tab bar -->
+      <!-- Filtro de categoría -->
+      <div id="calFiltroWrap" style="margin-bottom:12px;display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none">
+        <button class="tab-btn active" id="calFiltroBtn_" onclick="setCalFiltro('',this)" style="white-space:nowrap;font-size:11px;padding:5px 10px">Todos</button>
+        <button class="tab-btn" id="calFiltroBtn_personal" onclick="setCalFiltro('personal',this)" style="white-space:nowrap;font-size:11px;padding:5px 10px">🔵 Personal</button>
+        <button class="tab-btn" id="calFiltroBtn_trabajo" onclick="setCalFiltro('trabajo',this)" style="white-space:nowrap;font-size:11px;padding:5px 10px">🔴 Trabajo</button>
+        <button class="tab-btn" id="calFiltroBtn_salud" onclick="setCalFiltro('salud',this)" style="white-space:nowrap;font-size:11px;padding:5px 10px">🟢 Salud</button>
+        <button class="tab-btn" id="calFiltroBtn_finanzas" onclick="setCalFiltro('finanzas',this)" style="white-space:nowrap;font-size:11px;padding:5px 10px">🟡 Finanzas</button>
+        <button class="tab-btn" id="calFiltroBtn_cumpleanos" onclick="setCalFiltro('cumpleanos',this)" style="white-space:nowrap;font-size:11px;padding:5px 10px">🩷 Cumpleaños</button>
+        <button class="tab-btn" id="calFiltroBtn_otro" onclick="setCalFiltro('otro',this)" style="white-space:nowrap;font-size:11px;padding:5px 10px">⚫ Otro</button>
+      </div>
       <div class="tab-bar" style="margin-bottom:16px">
         <button class="tab-btn active" id="tabCalMensual" onclick="calTab('mensual',this)">Mensual</button>
         <button class="tab-btn" id="tabCalSemanal" onclick="calTab('semanal',this)">Semanal</button>
+        <button class="tab-btn" id="tabCalAgenda" onclick="calTab('agenda',this)">Agenda</button>
       </div>
 
       <!-- VISTA MENSUAL -->
@@ -660,8 +677,13 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
         <div id="calWeekGrid"></div>
       </div>
 
-      <!-- Próximos eventos (siempre visible) -->
-      <div style="margin-top:20px">
+      <!-- VISTA AGENDA -->
+      <div id="calViewAgenda" style="display:none">
+        <div id="calAgendaGrid"></div>
+      </div>
+
+      <!-- Próximos eventos (visible en mensual y semanal) -->
+      <div style="margin-top:20px" id="calUpcomingSection">
         <div class="card-title" style="margin-bottom:12px" id="calUpcomingTitle">Próximos eventos</div>
         <div id="upcomingEvents"></div>
       </div>
@@ -859,47 +881,6 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
       </div>
     </div>
 
-    <!-- MODAL CORREGIR SALDO -->
-    <div class="modal-overlay" id="modalAjustarSaldo"><div class="modal">
-      <div class="modal-header"><div class="modal-title" id="modalAjustarTitle">✏️ Corregir saldo</div><button class="modal-close" onclick="closeModal('modalAjustarSaldo')">✕</button></div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:14px" id="modalAjustarSub">Introduce el saldo real actual. Sobrescribe el valor sin registrar un movimiento.</div>
-      <div class="input-group" style="margin-bottom:10px">
-        <div class="input-label">SALDO ACTUAL</div>
-        <div style="font-size:20px;font-weight:700;color:var(--text3);padding:6px 0" id="modalAjustarActual">0,00€</div>
-      </div>
-      <div class="input-group" style="margin-bottom:16px">
-        <div class="input-label">NUEVO SALDO CORRECTO</div>
-        <input type="number" id="ajustarSaldoValor" placeholder="0.00" step="0.01">
-      </div>
-      <input type="hidden" id="ajustarSaldoCuenta">
-      <button class="btn btn-primary" style="width:100%" onclick="confirmarAjusteSaldo()">Aplicar corrección</button>
-    </div></div>
-
-    <!-- MODAL AHORROS -->
-    <div class="modal-overlay" id="modalAhorro"><div class="modal">
-      <div class="modal-header"><div class="modal-title" id="modalAhorroTitle">🏦 Nuevo Ahorro</div><button class="modal-close" onclick="closeModal('modalAhorro')">✕</button></div>
-      <div class="input-group" style="margin-bottom:10px">
-        <div class="input-label">CANTIDAD</div>
-        <input type="number" id="ahorroMonto" placeholder="0.00" step="0.01" min="0">
-      </div>
-      <div style="margin-bottom:10px">
-        <div class="input-label" style="margin-bottom:6px">TIPO</div>
-        <div style="display:flex;gap:8px">
-          <button id="ahorroTipoEfectivo" onclick="setAhorroTipo('efectivo')" style="flex:1;padding:9px;border-radius:8px;border:2px solid var(--green);background:var(--green-bg);color:var(--green);font-weight:600;cursor:pointer;font-size:13px">💵 Efectivo</button>
-          <button id="ahorroTipoTarjeta" onclick="setAhorroTipo('tarjeta')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-weight:600;cursor:pointer;font-size:13px">💳 Tarjeta</button>
-        </div>
-      </div>
-      <div class="input-group" style="margin-bottom:10px">
-        <div class="input-label">DESCRIPCIÓN (opcional)</div>
-        <input type="text" id="ahorroDesc" placeholder="Ej: Paga semanal, regalo...">
-      </div>
-      <div class="input-group" style="margin-bottom:16px">
-        <div class="input-label">FECHA</div>
-        <input type="date" id="ahorroFecha">
-      </div>
-      <input type="hidden" id="ahorroEditId">
-      <button class="btn btn-primary" style="width:100%" onclick="guardarAhorro()">Guardar</button>
-    </div></div>
 
     <!-- NOTAS -->
     <div class="section-view" id="sec-notas">
@@ -1025,6 +1006,48 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
 
 <div class="toast" id="toast"><span id="toastMsg"></span></div>
 
+<!-- MODAL CORREGIR SALDO -->
+<div class="modal-overlay" id="modalAjustarSaldo"><div class="modal">
+  <div class="modal-header"><div class="modal-title" id="modalAjustarTitle">✏️ Corregir saldo</div><button class="modal-close" onclick="closeModal('modalAjustarSaldo')">✕</button></div>
+  <div style="font-size:13px;color:var(--text2);margin-bottom:14px" id="modalAjustarSub">Introduce el saldo real actual. Sobrescribe el valor sin registrar un movimiento.</div>
+  <div class="input-group" style="margin-bottom:10px">
+    <div class="input-label">SALDO ACTUAL</div>
+    <div style="font-size:20px;font-weight:700;color:var(--text3);padding:6px 0" id="modalAjustarActual">0,00€</div>
+  </div>
+  <div class="input-group" style="margin-bottom:16px">
+    <div class="input-label">NUEVO SALDO CORRECTO</div>
+    <input type="number" id="ajustarSaldoValor" placeholder="0.00" step="0.01">
+  </div>
+  <input type="hidden" id="ajustarSaldoCuenta">
+  <button class="btn btn-primary" style="width:100%" onclick="confirmarAjusteSaldo()">Aplicar corrección</button>
+</div></div>
+
+<!-- MODAL AHORROS -->
+<div class="modal-overlay" id="modalAhorro"><div class="modal">
+  <div class="modal-header"><div class="modal-title" id="modalAhorroTitle">🏦 Nuevo Ahorro</div><button class="modal-close" onclick="closeModal('modalAhorro')">✕</button></div>
+  <div class="input-group" style="margin-bottom:10px">
+    <div class="input-label">CANTIDAD</div>
+    <input type="number" id="ahorroMonto" placeholder="0.00" step="0.01" min="0">
+  </div>
+  <div style="margin-bottom:10px">
+    <div class="input-label" style="margin-bottom:6px">TIPO</div>
+    <div style="display:flex;gap:8px">
+      <button id="ahorroTipoEfectivo" onclick="setAhorroTipo('efectivo')" style="flex:1;padding:9px;border-radius:8px;border:2px solid var(--green);background:var(--green-bg);color:var(--green);font-weight:600;cursor:pointer;font-size:13px">💵 Efectivo</button>
+      <button id="ahorroTipoTarjeta" onclick="setAhorroTipo('tarjeta')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-weight:600;cursor:pointer;font-size:13px">💳 Tarjeta</button>
+    </div>
+  </div>
+  <div class="input-group" style="margin-bottom:10px">
+    <div class="input-label">DESCRIPCIÓN (opcional)</div>
+    <input type="text" id="ahorroDesc" placeholder="Ej: Paga semanal, regalo...">
+  </div>
+  <div class="input-group" style="margin-bottom:16px">
+    <div class="input-label">FECHA</div>
+    <input type="date" id="ahorroFecha">
+  </div>
+  <input type="hidden" id="ahorroEditId">
+  <button class="btn btn-primary" style="width:100%" onclick="guardarAhorro()">Guardar</button>
+</div></div>
+
 <!-- ═══ MODALES ═══ -->
 
 <!-- Nueva Tarea -->
@@ -1069,7 +1092,10 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
   <div class="modal-header"><div class="modal-title" id="modalEventoTitle">📅 Nuevo Evento</div><button class="modal-close" onclick="closeModal('modalNuevoEvento')">✕</button></div>
   <div class="input-group"><div class="input-label" id="modalEventoTituloLabel">TÍTULO</div><input type="text" id="eventoTitulo" placeholder="Ej: Médico a las 10h"></div>
   <div class="input-group"><div class="input-label" id="modalEventoFechaLabel">FECHA</div><input type="date" id="eventoFecha"></div>
-  <div class="input-group"><div class="input-label" id="modalEventoHoraLabel">HORA (opcional)</div><input type="time" id="eventoHora"></div>
+  <div style="display:flex;gap:10px">
+    <div class="input-group" style="flex:1"><div class="input-label" id="modalEventoHoraLabel">HORA INICIO</div><input type="time" id="eventoHora"></div>
+    <div class="input-group" style="flex:1"><div class="input-label">HORA FIN</div><input type="time" id="eventoHoraFin"></div>
+  </div>
   <div class="input-group"><div class="input-label" id="modalEventoCatLabel">CATEGORÍA</div><select id="eventoCategoria"></select></div>
   <div class="input-group"><div class="input-label" id="modalEventoNotasLabel">NOTAS</div><textarea id="eventoNotas" placeholder="Detalles adicionales..."></textarea></div>
   <div class="input-group"><div class="input-label">🔔 RECORDATORIO (opcional)</div><input type="time" id="eventoRecordatorio" style="max-width:160px"><div style="font-size:11px;color:var(--text3);margin-top:6px">Si pones hora, recibirás alarma ese día con sonido y vibración</div></div>
@@ -2594,6 +2620,7 @@ function renderCalendario(){
   setText("calSub",L.cal.sub);
   setText("calUpcomingTitle",L.cal.upcoming);
   if(currentCalTab==="mensual")renderCalMensual();
+  else if(currentCalTab==="agenda")renderCalAgenda();
   else renderCalSemanal();
   renderUpcoming();
 }
@@ -2611,7 +2638,7 @@ function renderCalMensual(){
   for(let d2=1;d2<=daysInMonth;d2++){
     const ds=calYear+"-"+String(calMonth+1).padStart(2,"0")+"-"+String(d2).padStart(2,"0");
     const isT=ds===todayStr;
-    const dayEvs=eventos.filter(e=>e.fecha===ds);
+    const dayEvs=getEventosFiltrados().filter(e=>e.fecha===ds);
     // Dots only — no text overflow issues
     const dots=dayEvs.slice(0,4).map(e=>`<div style="width:6px;height:6px;border-radius:50%;background:${eventCatColors[e.categoria]||"#2563eb"};flex-shrink:0"></div>`).join("");
     const dotsHtml=dayEvs.length>0?`<div style="display:flex;gap:2px;flex-wrap:wrap;margin-top:3px">${dots}</div>`:"";
@@ -2641,13 +2668,13 @@ function renderCalSemanal(){
     d.setDate(weekStart.getDate()+i);
     const ds=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
     const isT=ds===todayStr;
-    const dayEvs=eventos.filter(e=>e.fecha===ds).sort((a,b)=>(a.hora||"").localeCompare(b.hora||""));
+    const dayEvs=getEventosFiltrados().filter(e=>e.fecha===ds).sort((a,b)=>(a.hora||"").localeCompare(b.hora||""));
     const evHtml=dayEvs.length===0
       ?`<div style="font-size:11px;color:var(--text3);padding:4px 0">Sin eventos</div>`
       :dayEvs.map(ev=>`<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg3);border-radius:6px;margin-bottom:4px;border-left:3px solid ${eventCatColors[ev.categoria]||"#2563eb"}">
           <div style="flex:1;min-width:0">
             <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.titulo}</div>
-            ${ev.hora?`<div style="font-size:10px;color:var(--text3)">${ev.hora}</div>`:""}
+            ${ev.hora?`<div style="font-size:10px;color:var(--text3)">${ev.hora}${ev.horaFin?" – "+ev.horaFin:""}</div>`:""}
           </div>
           <button class="btn btn-ghost btn-sm btn-icon" onclick="abrirEditarEvento('${ev.id}')" style="width:24px;height:24px;font-size:11px;flex-shrink:0">${ICON_EDIT}</button>
         </div>`).join("");
@@ -2666,18 +2693,55 @@ function renderCalSemanal(){
 
 function renderUpcoming(){
   const L=T();
-  const upcoming=eventos.filter(e=>e.fecha>=today()).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,5);
+  const upcoming=getEventosFiltrados().filter(e=>e.fecha>=today()).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,10);
   document.getElementById("upcomingEvents").innerHTML=upcoming.length===0
     ?`<p style="color:var(--text3);font-size:13px">${L.cal.no_upcoming}</p>`
     :upcoming.map(e=>`<div class="list-item">
       <div style="width:10px;height:10px;border-radius:50%;background:${eventCatColors[e.categoria]||"#2563eb"};flex-shrink:0"></div>
       <div class="list-item-content">
         <div class="list-item-title">${e.titulo}</div>
-        <div class="list-item-sub">${e.fecha}${e.hora?" · "+e.hora:""} · ${e.categoria}</div>
+        <div class="list-item-sub">${e.fecha}${e.hora?" · "+e.hora+(e.horaFin?" – "+e.horaFin:""):""} · ${e.categoria}</div>
       </div>
       <button class="btn btn-ghost btn-sm btn-icon" onclick="abrirEditarEvento('${e.id}')" style="width:28px;height:28px;font-size:13px">${ICON_EDIT}</button>
       <button class="btn btn-danger btn-sm btn-icon" onclick="eliminarEvento('${e.id}')" style="width:28px;height:28px">✕</button>
     </div>`).join("");
+}
+
+function renderCalAgenda(){
+  const L=T();
+  const evs=getEventosFiltrados().filter(e=>e.fecha>=today()).sort((a,b)=>a.fecha.localeCompare(b.fecha)||((a.hora||"").localeCompare(b.hora||"")));
+  if(!evs.length){
+    document.getElementById("calAgendaGrid").innerHTML=`<p style="color:var(--text3);font-size:13px;padding:12px 0">${L.cal.no_upcoming}</p>`;
+    return;
+  }
+  let html="",lastDate="";
+  evs.forEach(ev=>{
+    if(ev.fecha!==lastDate){
+      lastDate=ev.fecha;
+      const d=new Date(ev.fecha+"T12:00:00");
+      const isT=ev.fecha===today();
+      const label=d.toLocaleDateString(ajustes.idioma==="ru"?"ru-RU":"es-ES",{weekday:"long",day:"numeric",month:"long"});
+      html+=`<div style="display:flex;align-items:center;gap:10px;margin:${html?"20px":"0"}px 0 8px">
+        <div style="font-size:12px;font-weight:700;text-transform:capitalize;color:${isT?"var(--accent2)":"var(--text2)"}">${label}</div>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        ${isT?'<div style="font-size:10px;font-weight:700;color:var(--accent2);background:rgba(123,82,255,.12);padding:2px 7px;border-radius:8px">HOY</div>':""}
+      </div>`;
+    }
+    const col=eventCatColors[ev.categoria]||"#2563eb";
+    const horaStr=ev.hora?(ev.hora+(ev.horaFin?" – "+ev.horaFin:"")):"";
+    html+=`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:10px;margin-bottom:6px;border-left:3px solid ${col}">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${ev.titulo}</div>
+        ${horaStr?`<div style="font-size:11px;color:var(--text3);margin-top:2px">🕐 ${horaStr}</div>`:""}
+        ${ev.notas?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${ev.notas}</div>`:""}
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="abrirEditarEvento('${ev.id}')" style="width:26px;height:26px;font-size:11px">${ICON_EDIT}</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="eliminarEvento('${ev.id}')" style="width:26px;height:26px">✕</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById("calAgendaGrid").innerHTML=html;
 }
 
 function weekNav(dir){
@@ -2763,6 +2827,7 @@ function abrirEditarEvento(id){
   document.getElementById("eventoTitulo").value=ev.titulo||"";
   document.getElementById("eventoFecha").value=ev.fecha||"";
   document.getElementById("eventoHora").value=ev.hora||"";
+  document.getElementById("eventoHoraFin").value=ev.horaFin||"";
   document.getElementById("eventoCategoria").value=ev.categoria||"";
   document.getElementById("eventoNotas").value=ev.notas||"";
   document.getElementById("eventoRecordatorio").value=ev.recordatorio||"";
@@ -2778,6 +2843,7 @@ function guardarEvento(){
     titulo:tx,
     fecha:document.getElementById("eventoFecha").value||today(),
     hora:document.getElementById("eventoHora").value,
+    horaFin:document.getElementById("eventoHoraFin").value,
     categoria:document.getElementById("eventoCategoria").value,
     notas:document.getElementById("eventoNotas").value,
     recordatorio:rec
@@ -2794,6 +2860,7 @@ function guardarEvento(){
   closeModal("modalNuevoEvento");
   document.getElementById("eventoTitulo").value="";
   document.getElementById("eventoHora").value="";
+  document.getElementById("eventoHoraFin").value="";
   document.getElementById("eventoNotas").value="";
   document.getElementById("eventoRecordatorio").value="";
   document.getElementById("modalEventoTitle").textContent="📅 Nuevo Evento";
@@ -2824,8 +2891,7 @@ function initModalSemana(){
         .sort((a,b)=>b.fechaLunes.localeCompare(a.fechaLunes))[0];
       if(prev&&prev.horario){
         prev.horario.forEach((dia,idx)=>{
-          if(dia.libre){const btn=document.getElementById("dia_libre_"+idx);if(btn&&!btn.classList.contains("on")){btn.classList.add("on");applyDiaLibre(idx,true);}}
-          else{const ent=document.getElementById("dia_entrada_"+idx),sal=document.getElementById("dia_salida_"+idx);if(ent&&dia.entrada)ent.value=dia.entrada;if(sal&&dia.salida)sal.value=dia.salida;}
+          {const t=dia.tipo||(dia.libre?"nl":"normal");setDiaTipo(idx,t);if(t==="normal"){const ent=document.getElementById("dia_entrada_"+idx),sal=document.getElementById("dia_salida_"+idx);if(ent&&dia.entrada)ent.value=dia.entrada;if(sal&&dia.salida)sal.value=dia.salida;}}
         });
         calcSemana();
         toast("📋 Horario anterior cargado como plantilla");
@@ -2841,8 +2907,7 @@ function checkSemanaExistente(){
   if(ex.horasAsignadas)document.getElementById("semanaHorasAsignadas").value=ex.horasAsignadas;
   if(ex.notas)document.getElementById("semanaNotas").value=ex.notas;
   if(ex.horario)ex.horario.forEach((dia,idx)=>{
-    if(dia.libre){const btn=document.getElementById("dia_libre_"+idx);if(btn&&!btn.classList.contains("on")){btn.classList.add("on");applyDiaLibre(idx,true);}}
-    else{const ent=document.getElementById("dia_entrada_"+idx),sal=document.getElementById("dia_salida_"+idx);if(ent&&dia.entrada)ent.value=dia.entrada;if(sal&&dia.salida)sal.value=dia.salida;}
+    {const t=dia.tipo||(dia.libre?"nl":"normal");setDiaTipo(idx,t);if(t==="normal"){const ent=document.getElementById("dia_entrada_"+idx),sal=document.getElementById("dia_salida_"+idx);if(ent&&dia.entrada)ent.value=dia.entrada;if(sal&&dia.salida)sal.value=dia.salida;}}
   });
   toast(T().toast.week_loaded);
 }
@@ -2854,9 +2919,10 @@ function buildDiaInputs(fechaLunes){
     return`<div class="semana-day-row" id="dayrow_${i}">
       <div class="semana-day-header">
         <div><div style="font-size:14px;font-weight:600;color:var(--text)">${dia}</div><div style="font-size:11px;color:var(--text3)">${fecha}</div></div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:12px;color:var(--text3)">${L.week.free}</span>
-          <button class="toggle" id="dia_libre_${i}" onclick="toggleDiaLibre(${i})"></button>
+        <div style="display:flex;gap:4px">
+          <button class="dia-tipo-btn active-normal" id="diaBtn_normal_${i}" onclick="setDiaTipo(${i},'normal')">Normal</button>
+          <button class="dia-tipo-btn" id="diaBtn_nl_${i}" onclick="setDiaTipo(${i},'nl')">NL</button>
+          <button class="dia-tipo-btn" id="diaBtn_vac_${i}" onclick="setDiaTipo(${i},'vacaciones')">🏖 Vac.</button>
         </div>
       </div>
       <div class="semana-time-grid" id="dia_inputs_${i}">
@@ -2866,13 +2932,37 @@ function buildDiaInputs(fechaLunes){
     </div>`;
   }).join("");
 }
-function toggleDiaLibre(i){const btn=document.getElementById("dia_libre_"+i);btn.classList.toggle("on");applyDiaLibre(i,btn.classList.contains("on"));calcSemana();}
-function applyDiaLibre(i,libre){const row=document.getElementById("dayrow_"+i),inputs=document.getElementById("dia_inputs_"+i);if(libre)row.classList.add("libre");else row.classList.remove("libre");inputs.style.display=libre?"none":"grid";}
+function getDiaTipo(i){
+  if(document.getElementById("diaBtn_nl_"+i)?.classList.contains("active-nl"))return"nl";
+  if(document.getElementById("diaBtn_vac_"+i)?.classList.contains("active-vac"))return"vacaciones";
+  return"normal";
+}
+function setDiaTipo(i,tipo){
+  ["normal","nl","vacaciones"].forEach(t=>{
+    const btn=document.getElementById("diaBtn_"+t+"_"+i);
+    if(btn){btn.classList.remove("active-normal","active-nl","active-vac");}
+  });
+  const activeClass=tipo==="nl"?"active-nl":tipo==="vacaciones"?"active-vac":"active-normal";
+  const activeBtn=document.getElementById("diaBtn_"+tipo+"_"+i);
+  if(activeBtn)activeBtn.classList.add(activeClass);
+  applyDiaTipo(i,tipo);
+  calcSemana();
+}
+function applyDiaTipo(i,tipo){
+  const row=document.getElementById("dayrow_"+i),inputs=document.getElementById("dia_inputs_"+i);
+  row.classList.remove("libre","nl","vacaciones");
+  if(tipo==="nl"){row.classList.add("nl");inputs.style.display="none";}
+  else if(tipo==="vacaciones"){row.classList.add("vacaciones");inputs.style.display="none";}
+  else{inputs.style.display="grid";}
+}
+// Legacy compat — keep toggleDiaLibre in case old data calls it
+function toggleDiaLibre(i){setDiaTipo(i,getDiaTipo(i)==="normal"?"nl":"normal");}
+function applyDiaLibre(i,libre){setDiaTipo(i,libre?"nl":"normal");}
 function calcSemana(){
   const contractual=parseFloat(ajustes.jornadaSemanal)||34;
   let horasDesglose=0,diasTrabajados=0;
   for(let i=0;i<7;i++){
-    if(document.getElementById("dia_libre_"+i)?.classList.contains("on"))continue;
+    if(getDiaTipo(i)!=="normal")continue;
     const ent=document.getElementById("dia_entrada_"+i)?.value;
     const sal=document.getElementById("dia_salida_"+i)?.value;
     if(ent&&sal){const[eh,em]=ent.split(":").map(Number),[sh,sm]=sal.split(":").map(Number);const h=((sh*60+sm)-(eh*60+em))/60;if(h>0){horasDesglose+=h;diasTrabajados++;}}
@@ -2897,11 +2987,11 @@ function guardarSemana(){
   const diff=parseFloat(box.dataset.diff||0),contractual=parseFloat(ajustes.jornadaSemanal)||34;
   const notas=document.getElementById("semanaNotas").value.trim();
   const horario=Array.from({length:7},(_,i)=>{
-    const libre=document.getElementById("dia_libre_"+i)?.classList.contains("on");
-    if(libre)return{dia:L.days[i],libre:true};
+    const tipo=getDiaTipo(i);
+    if(tipo!=="normal")return{dia:L.days[i],tipo};
     const entrada=document.getElementById("dia_entrada_"+i)?.value||"";
     const salida=document.getElementById("dia_salida_"+i)?.value||"";
-    return(entrada&&salida)?{dia:L.days[i],entrada,salida}:null;
+    return(entrada&&salida)?{dia:L.days[i],entrada,salida,tipo:"normal"}:null;
   }).filter(Boolean);
   const existente=semanas.find(s=>s.fechaLunes===fechaLunes);
   const sem={id:uid(),fechaLunes,horasAsignadas:asignadas,horasContractuales:contractual,diff,horario,notas,registradoEn:existente?.registradoEn||new Date().toISOString()};
@@ -3071,12 +3161,13 @@ function descargaPDFSemana(fechaLunes){
     doc.line(ml,y+8,mr,y+8);
     doc.setFont("helvetica","normal");
     doc.setFontSize(9);
-    if(dia.libre){
+    const _diaTipo=dia.tipo||(dia.libre?"nl":"normal");
+    if(_diaTipo!=="normal"){
       doc.setTextColor(26,37,64);
       doc.text(dia.dia||"—",ml+3,y+5.5);
-      doc.setTextColor(217,119,6);
+      doc.setTextColor(_diaTipo==="vacaciones"?[99,179,237]:[217,119,6]);
       doc.text("—",ml+42,y+5.5);
-      doc.text("Día libre",ml+148,y+5.5);
+      doc.text(_diaTipo==="vacaciones"?"Vacaciones":"NL – No laborable",ml+148,y+5.5);
     } else {
       doc.setTextColor(26,37,64);
       doc.text(dia.dia||"—",ml+3,y+5.5);
@@ -3205,8 +3296,10 @@ function exportarCSVCredito(){
     }
     s.horario.forEach((dia,idx)=>{
       const fechaDia=fmtFechaDia(s.fechaLunes,idx);
-      if(dia.libre){
-        csv+=row(["Semana del "+fmtFecha(s.fechaLunes),fechaDia,"","","","Día libre"]);
+      const _csvTipo=dia.tipo||(dia.libre?"nl":"normal");
+      if(_csvTipo!=="normal"){
+        const _csvLabel=_csvTipo==="vacaciones"?"Vacaciones":"NL – No laborable";
+        csv+=row(["Semana del "+fmtFecha(s.fechaLunes),fechaDia,"","","",_csvLabel]);
       } else {
         csv+=row([
           "Semana del "+fmtFecha(s.fechaLunes),
@@ -3236,8 +3329,7 @@ function editarSemana(fechaLunes){
     document.getElementById("semanaNotas").value=sem.notas||"";
     buildDiaInputs(fechaLunes);
     if(sem.horario)sem.horario.forEach((dia,idx)=>{
-      if(dia.libre){const btn=document.getElementById("dia_libre_"+idx);if(btn&&!btn.classList.contains("on")){btn.classList.add("on");applyDiaLibre(idx,true);}}
-      else{const ent=document.getElementById("dia_entrada_"+idx),sal=document.getElementById("dia_salida_"+idx);if(ent&&dia.entrada)ent.value=dia.entrada;if(sal&&dia.salida)sal.value=dia.salida;}
+      {const t=dia.tipo||(dia.libre?"nl":"normal");setDiaTipo(idx,t);if(t==="normal"){const ent=document.getElementById("dia_entrada_"+idx),sal=document.getElementById("dia_salida_"+idx);if(ent&&dia.entrada)ent.value=dia.entrada;if(sal&&dia.salida)sal.value=dia.salida;}}
     });
     calcSemana();
   },80);
@@ -4410,7 +4502,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260403e';
+const CURRENT_CACHE = 'mivida-20260403f';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
