@@ -674,8 +674,10 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
           <div class="sec-hero-title" id="creditTitle">Crédito Horario</div>
           <div class="sec-hero-sub" id="creditSub">Sistema semanal — horas a favor y en contra</div>
         </div>
-        <button class="btn sec-hero-btn" id="btnAddSemana" onclick="openModal('modalRegistrarSemana')">+ Semana</button>
-        <button class="btn btn-ghost" style="font-size:11px;gap:5px;padding:8px 12px" onclick="exportarCSVCredito()" title="Exportar evidencia CSV">📊 CSV</button>
+        <div style="display:flex;gap:8px;align-items:center;position:relative;z-index:1;flex-shrink:0">
+          <button class="btn btn-ghost" style="font-size:11px;gap:5px;padding:7px 11px;white-space:nowrap" onclick="exportarCSVCredito()" title="Exportar CSV">📊 CSV</button>
+          <button class="btn sec-hero-btn" id="btnAddSemana" onclick="openModal('modalRegistrarSemana')" style="white-space:nowrap">+ Semana</button>
+        </div>
       </div>
       <!-- RESUMEN RÁPIDO -->
       <div id="creditResumen" style="background:linear-gradient(135deg,rgba(123,82,255,.12),rgba(60,30,180,.06));border:1px solid rgba(123,82,255,.2);border-radius:var(--radius);padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
@@ -778,6 +780,7 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
       <div class="tab-bar">
         <button class="tab-btn active" id="tabFinMov" onclick="financeTab('movimientos',this)">Movimientos</button>
         <button class="tab-btn" id="tabFinBudget" onclick="financeTab('presupuesto',this)">Presupuesto</button>
+        <button class="tab-btn" id="tabFinAhorros" onclick="financeTab('ahorros',this)">🏦 Ahorros</button>
         <button class="tab-btn" id="tabFinCharts" onclick="financeTab('graficas',this)">Gráficas</button>
         <button class="tab-btn" id="tabFinTransfer" onclick="financeTab('transferir',this)">Transferir</button>
         <button class="tab-btn" id="tabFinPapelera" onclick="financeTab('papelera',this)">🗑️</button>
@@ -828,7 +831,59 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
         </div>
         <div id="papeleraList"></div>
       </div>
+
+      <!-- AHORROS -->
+      <div id="finAhorros" style="display:none">
+        <!-- Resumen KPIs -->
+        <div class="grid-3" style="margin-bottom:16px">
+          <div class="stat-card" style="text-align:center">
+            <div class="stat-label">TOTAL AHORRADO</div>
+            <div style="font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--green)" id="ahorroKpiTotal">0,00€</div>
+            <div class="stat-sub">Efectivo + Tarjeta</div>
+          </div>
+          <div class="stat-card" style="text-align:center">
+            <div class="stat-label">💵 EFECTIVO</div>
+            <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text)" id="ahorroKpiEfectivo">0,00€</div>
+            <div class="stat-sub">En efectivo</div>
+          </div>
+          <div class="stat-card" style="text-align:center">
+            <div class="stat-label">💳 TARJETA</div>
+            <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text)" id="ahorroKpiTarjeta">0,00€</div>
+            <div class="stat-sub">En cuenta</div>
+          </div>
+        </div>
+        <!-- Botón añadir -->
+        <button class="btn btn-primary" style="width:100%;margin-bottom:16px" onclick="openModalAhorro()">+ Añadir ahorro</button>
+        <!-- Lista -->
+        <div id="ahorrosList"></div>
+      </div>
     </div>
+
+    <!-- MODAL AHORROS -->
+    <div class="modal-overlay" id="modalAhorro"><div class="modal">
+      <div class="modal-header"><div class="modal-title" id="modalAhorroTitle">🏦 Nuevo Ahorro</div><button class="modal-close" onclick="closeModal('modalAhorro')">✕</button></div>
+      <div class="input-group">
+        <div class="input-label">CANTIDAD</div>
+        <input type="number" id="ahorroMonto" placeholder="0.00" step="0.01" min="0">
+      </div>
+      <div class="input-group">
+        <div class="input-label">TIPO</div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button id="ahorroTipoEfectivo" onclick="setAhorroTipo('efectivo')" style="flex:1;padding:10px;border-radius:8px;border:2px solid var(--green);background:var(--green-bg);color:var(--green);font-weight:600;cursor:pointer;font-size:13px">💵 Efectivo</button>
+          <button id="ahorroTipoTarjeta" onclick="setAhorroTipo('tarjeta')" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-weight:600;cursor:pointer;font-size:13px">💳 Tarjeta</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <div class="input-label">DESCRIPCIÓN (opcional)</div>
+        <input type="text" id="ahorroDesc" placeholder="Ej: Paga semanal, regalo...">
+      </div>
+      <div class="input-group">
+        <div class="input-label">FECHA</div>
+        <input type="date" id="ahorroFecha">
+      </div>
+      <input type="hidden" id="ahorroEditId">
+      <button class="btn btn-primary" style="width:100%" onclick="guardarAhorro()">Guardar</button>
+    </div></div>
 
     <!-- NOTAS -->
     <div class="section-view" id="sec-notas">
@@ -1439,6 +1494,7 @@ auth.onAuthStateChanged(async user=>{
     datosPersonales=S.get("datosPersonales")||[];
     ideas=S.get("ideas")||[];
     documentos=S.get("documentos")||[];
+    ahorros=S.get("ahorros")||[];
     eliminados=S.get("eliminados")||[];
     overlay.classList.add("hidden");
     // Update user name in sidebar from Google account
@@ -1452,7 +1508,7 @@ auth.onAuthStateChanged(async user=>{
       if(!snap.exists||!currentUser)return;
       if(Date.now()-lastLocalSave<3000)return;
       const data=snap.data();
-      const privateKeys=["semanas","tareas","completadas","metas","eventos","pendientes","notasLibres","listas","contactos","datosPersonales","ideas","documentos","passwords","ajustes"];
+      const privateKeys=["semanas","tareas","completadas","metas","eventos","pendientes","notasLibres","listas","contactos","datosPersonales","ideas","documentos","passwords","ajustes","ahorros"];
       let changed=false;
       privateKeys.forEach(k=>{
         if(data[k]!==undefined){
@@ -1535,6 +1591,7 @@ let metas=[];
 let eventos=[];
 let semanas=[];
 let movimientos=[];
+let ahorros=[];
 let presupuesto={};
 let saldos={efectivo:0,banco:0};
 let eliminados=[];
@@ -1550,6 +1607,7 @@ let tipoMovActual="gasto";
 let currentMetaTab="activas";
 let currentFinTab="movimientos";
 let movEditId=null;
+let ahorroTipoActual="efectivo";
 let currentObligTab="semanal";
 let currentNotasTab="notas";
 let calYear=new Date().getFullYear();
@@ -2922,138 +2980,160 @@ function descargaPDFSemana(fechaLunes){
   if(!window.jsPDF){toast("❌ PDF no disponible, recarga la app");return;}
   const doc=new window.jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
   const W=210,ml=18,mr=192,cw=W-ml*2;
-  // Cabecera
-  doc.setFillColor(4,8,15);
-  doc.rect(0,0,W,38,"F");
+  // Cabecera oscura
+  doc.setFillColor(15,24,41);
+  doc.rect(0,0,W,42,"F");
+  // Línea azul decorativa inferior cabecera
+  doc.setFillColor(37,99,235);
+  doc.rect(0,41,W,1.5,"F");
+  // Logo MV
+  doc.setFillColor(37,99,235);
+  doc.roundedRect(ml,8,11,11,2,2,"F");
   doc.setTextColor(255,255,255);
   doc.setFont("helvetica","bold");
-  doc.setFontSize(18);
-  doc.text("MI VIDA — Crédito Horario",ml,16);
   doc.setFontSize(10);
+  doc.text("MV",ml+2.5,15.5);
+  // Título
+  doc.setFontSize(16);
+  doc.setTextColor(226,236,248);
+  doc.text("MI VIDA — Crédito Horario",ml+15,14);
+  doc.setFontSize(8.5);
   doc.setFont("helvetica","normal");
-  doc.setTextColor(150,170,200);
-  doc.text("Informe semanal · Registro oficial de jornada",ml,24);
-  doc.setTextColor(100,140,220);
-  doc.text("Semana del "+s.fechaLunes,ml,31);
-  // KPIs
-  doc.setFillColor(14,20,35);
-  doc.roundedRect(ml,44,cw/3-3,22,3,3,"F");
-  doc.roundedRect(ml+cw/3+1.5,44,cw/3-3,22,3,3,"F");
-  doc.roundedRect(ml+2*(cw/3)+3,44,cw/3-3,22,3,3,"F");
+  doc.setTextColor(122,159,192);
+  doc.text("Informe semanal · Registro oficial de jornada",ml+15,20);
+  doc.setTextColor(147,197,253);
+  doc.setFont("helvetica","bold");
+  doc.text("Semana del "+s.fechaLunes,ml+15,27);
+  // KPIs — fondo claro
   const diff=parseFloat(s.diff)||0;
   const kpis=[
-    {label:"HORAS TRABAJADAS",val:s.horasAsignadas+"h",color:[74,222,128]},
-    {label:"JORNADA CONTRACTUAL",val:s.horasContractuales+"h",color:[148,163,184]},
-    {label:"CRÉDITO",val:(diff>=0?"+":"")+fmtHoras(diff),color:diff>=0?[74,222,128]:[239,68,68]}
+    {label:"HORAS TRABAJADAS",val:s.horasAsignadas+"h",color:[5,150,105]},
+    {label:"JORNADA CONTRACTUAL",val:s.horasContractuales+"h",color:[74,100,130]},
+    {label:"CRÉDITO",val:(diff>=0?"+":"")+fmtHoras(diff),color:diff>=0?[5,150,105]:[220,38,38]}
   ];
+  const kw=cw/3-3;
   kpis.forEach((k,i)=>{
-    const x=ml+i*(cw/3)+i*1.5+6;
+    const x=ml+i*(kw+4.5);
+    doc.setFillColor(240,244,250);
+    doc.roundedRect(x,48,kw,20,2,2,"F");
+    doc.setFillColor(208,221,240);
+    doc.roundedRect(x,48,kw,20,2,2,"S");
     doc.setFont("helvetica","bold");
-    doc.setFontSize(8);
-    doc.setTextColor(100,120,160);
-    doc.text(k.label,x,52);
-    doc.setFontSize(16);
+    doc.setFontSize(6.5);
+    doc.setTextColor(74,96,128);
+    doc.text(k.label,x+4,55);
+    doc.setFontSize(14);
     doc.setTextColor(...k.color);
-    doc.text(k.val,x,62);
+    doc.text(k.val,x+4,64);
   });
   // Tabla horario
-  let y=76;
+  let y=80;
   doc.setFont("helvetica","bold");
   doc.setFontSize(9);
-  doc.setTextColor(100,140,220);
+  doc.setTextColor(37,99,235);
   doc.text("HORARIO DÍA A DÍA",ml,y);
   y+=5;
-  doc.setFillColor(14,20,35);
+  // Cabecera tabla — fondo gris claro
+  doc.setFillColor(232,238,248);
   doc.rect(ml,y,cw,7,"F");
   doc.setFont("helvetica","bold");
-  doc.setFontSize(8);
-  doc.setTextColor(150,170,200);
+  doc.setFontSize(7.5);
+  doc.setTextColor(74,96,128);
   doc.text("DÍA",ml+3,y+4.5);
-  doc.text("ENTRADA",ml+45,y+4.5);
-  doc.text("SALIDA",ml+85,y+4.5);
-  doc.text("HORAS",ml+125,y+4.5);
-  doc.text("ESTADO",ml+155,y+4.5);
+  doc.text("ENTRADA",ml+42,y+4.5);
+  doc.text("SALIDA",ml+80,y+4.5);
+  doc.text("HORAS",ml+118,y+4.5);
+  doc.text("ESTADO",ml+148,y+4.5);
   y+=7;
-  const diasTrab=s.horario?.filter(d=>!d.libre&&d.entrada&&d.salida)||[];
-  const diasLibre=s.horario?.filter(d=>d.libre)||[];
   s.horario?.forEach((dia,idx)=>{
-    if(idx%2===0){doc.setFillColor(10,14,26);doc.rect(ml,y,cw,8,"F");}
-    else{doc.setFillColor(14,20,35);doc.rect(ml,y,cw,8,"F");}
+    if(idx%2===0){doc.setFillColor(255,255,255);doc.rect(ml,y,cw,8,"F");}
+    else{doc.setFillColor(247,250,255);doc.rect(ml,y,cw,8,"F");}
+    // Separador sutil
+    doc.setDrawColor(232,238,248);
+    doc.setLineWidth(0.3);
+    doc.line(ml,y+8,mr,y+8);
     doc.setFont("helvetica","normal");
     doc.setFontSize(9);
     if(dia.libre){
-      doc.setTextColor(200,200,200);
+      doc.setTextColor(26,37,64);
       doc.text(dia.dia||"—",ml+3,y+5.5);
-      doc.setTextColor(232,160,32);
-      doc.text("—","—","—",ml+45,y+5.5);
-      doc.text("Día libre",ml+155,y+5.5);
+      doc.setTextColor(217,119,6);
+      doc.text("—",ml+42,y+5.5);
+      doc.text("Día libre",ml+148,y+5.5);
     } else {
-      doc.setTextColor(220,230,255);
+      doc.setTextColor(26,37,64);
       doc.text(dia.dia||"—",ml+3,y+5.5);
-      doc.text(dia.entrada||"—",ml+45,y+5.5);
-      doc.text(dia.salida||"—",ml+85,y+5.5);
+      doc.text(dia.entrada||"—",ml+42,y+5.5);
+      doc.text(dia.salida||"—",ml+80,y+5.5);
       if(dia.entrada&&dia.salida){
         const[eh,em]=dia.entrada.split(":").map(Number),[sh,sm]=dia.salida.split(":").map(Number);
         const h=((sh*60+sm)-(eh*60+em))/60;
-        doc.setTextColor(74,222,128);
-        doc.text(h.toFixed(1)+"h",ml+125,y+5.5);
+        doc.setFont("helvetica","bold");
+        doc.setTextColor(5,150,105);
+        doc.text(h.toFixed(1)+"h",ml+118,y+5.5);
+        doc.setFont("helvetica","normal");
       }
-      doc.setTextColor(100,200,150);
-      doc.text("Trabajado",ml+155,y+5.5);
+      doc.setTextColor(4,120,87);
+      doc.text("Trabajado",ml+148,y+5.5);
     }
     y+=8;
   });
-  // Totales
-  y+=4;
-  doc.setFillColor(25,40,70);
-  doc.rect(ml,y,cw,10,"F");
+  // Fila TOTAL
+  y+=2;
+  doc.setFillColor(220,230,245);
+  doc.rect(ml,y,cw,9,"F");
   doc.setFont("helvetica","bold");
-  doc.setFontSize(9);
-  doc.setTextColor(150,170,200);
-  doc.text("TOTAL",ml+3,y+6.5);
-  doc.setTextColor(74,222,128);
-  doc.text(s.horasAsignadas+"h",ml+125,y+6.5);
-  doc.setTextColor(diff>=0?[74,222,128]:[239,68,68]);
-  doc.setTextColor(...(diff>=0?[74,222,128]:[239,68,68]));
-  doc.text((diff>=0?"+":"")+fmtHoras(diff)+" sobre contrato",ml+155,y+6.5);
-  y+=16;
+  doc.setFontSize(8.5);
+  doc.setTextColor(74,96,128);
+  doc.text("TOTAL",ml+3,y+6);
+  doc.setTextColor(5,150,105);
+  doc.text(s.horasAsignadas+"h",ml+118,y+6);
+  doc.setTextColor(...(diff>=0?[5,150,105]:[220,38,38]));
+  doc.text((diff>=0?"+":"")+fmtHoras(diff),ml+148,y+6);
+  y+=15;
   // Notas
   if(s.notas){
     doc.setFont("helvetica","bold");
     doc.setFontSize(9);
-    doc.setTextColor(100,140,220);
+    doc.setTextColor(37,99,235);
     doc.text("NOTAS E INCIDENCIAS",ml,y);
     y+=5;
-    doc.setFillColor(14,20,35);
-    doc.roundedRect(ml,y,cw,1,"F");
-    y+=4;
+    doc.setFillColor(240,244,250);
+    const lines=doc.splitTextToSize(s.notas,cw-8);
+    const notaH=lines.length*5+6;
+    doc.roundedRect(ml,y,cw,notaH,2,2,"F");
+    doc.setDrawColor(208,221,240);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(ml,y,cw,notaH,2,2,"S");
     doc.setFont("helvetica","normal");
     doc.setFontSize(9);
-    doc.setTextColor(200,210,230);
-    const lines=doc.splitTextToSize(s.notas,cw-4);
-    lines.forEach(line=>{doc.text(line,ml+2,y);y+=5;});
-    y+=4;
+    doc.setTextColor(26,37,64);
+    lines.forEach(line=>{doc.text(line,ml+4,y+5);y+=5;});
+    y+=8;
   }
   // Firma
   y+=6;
-  doc.setDrawColor(40,60,100);
-  doc.line(ml,y,ml+70,y);
-  doc.line(ml+90,y,ml+90+70,y);
+  doc.setDrawColor(192,207,232);
+  doc.setLineWidth(0.8);
+  doc.line(ml,y,ml+65,y);
+  doc.line(ml+85,y,ml+150,y);
   doc.setFont("helvetica","normal");
   doc.setFontSize(7);
-  doc.setTextColor(80,100,140);
+  doc.setTextColor(122,159,192);
   doc.text("Firma del trabajador",ml,y+4);
-  doc.text("Firma del responsable",ml+90,y+4);
-  // Pie
-  y+=16;
-  doc.setFillColor(4,8,15);
-  doc.rect(0,y,W,20,"F");
+  doc.text("Firma del responsable",ml+85,y+4);
+  // Pie oscuro con línea azul
+  const pieY=280;
+  doc.setFillColor(37,99,235);
+  doc.rect(0,pieY-1,W,0.8,"F");
+  doc.setFillColor(15,24,41);
+  doc.rect(0,pieY,W,18,"F");
   doc.setFont("helvetica","normal");
   doc.setFontSize(7);
-  doc.setTextColor(80,100,140);
+  doc.setTextColor(122,159,192);
   const regDate=s.registradoEn?new Date(s.registradoEn).toLocaleString("es-ES"):"Sin fecha de registro";
-  doc.text("Documento generado por Mi Vida · Registrado: "+regDate,ml,y+8);
-  doc.text("Semana: "+s.fechaLunes+" · Jornada contractual: "+s.horasContractuales+"h/sem",ml,y+14);
+  doc.text("Documento generado por Mi Vida · Registrado: "+regDate,ml,pieY+6);
+  doc.text("Semana: "+s.fechaLunes+" · Jornada contractual: "+s.horasContractuales+"h/sem",ml,pieY+11);
   doc.save("credito_semana_"+s.fechaLunes+".pdf");
   toast("📄 PDF descargado");
 }
@@ -3062,45 +3142,63 @@ function exportarCSVCredito(){
   const sorted=[...semanas].sort((a,b)=>a.fechaLunes.localeCompare(b.fechaLunes));
   const esc=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;
   const row=cols=>cols.map(esc).join(",")+"\n";
+  const fmtFecha=iso=>{if(!iso)return"";const[y,m,d]=iso.split("-");return`${d}/${m}/${y}`;};
+  const fmtFechaDia=(isoLunes,offset)=>{const f=new Date(isoLunes+"T12:00:00");f.setDate(f.getDate()+offset);return f.toLocaleDateString("es-ES",{weekday:"long",day:"2-digit",month:"short",year:"numeric"});};
+  const fmtHorasDia=(entrada,salida)=>{if(!entrada||!salida)return"";const[eh,em]=entrada.split(":").map(Number),[sh,sm]=salida.split(":").map(Number);const t=(sh*60+sm)-(eh*60+em);const h=Math.floor(t/60),min=t%60;return`${h}h${min>0?" "+min+"min":""}`;};
+  const totalAcum=sorted.reduce((s,x)=>s+(parseFloat(x.diff)||0),0);
+
   let csv="\uFEFF"; // BOM para Excel
 
-  // ── BLOQUE 1: Resumen por semana ──
-  csv+="RESUMEN DE CRÉDITO HORARIO\n";
-  csv+=row(["Semana (lunes)","H. trabajadas","H. contractuales","Crédito decimal","Crédito (h:mm)","Días trabajados","Notas","Registrado el"]);
+  // ── CABECERA ──
+  csv+="MI VIDA — Historial de Crédito Horario\n";
+  csv+="Exportado el: "+new Date().toLocaleDateString("es-ES",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})+"\n";
+  csv+="Saldo acumulado total: "+fmtHoras(totalAcum)+"\n";
+  csv+="\n";
+
+  // ── RESUMEN POR SEMANA ──
+  csv+="RESUMEN POR SEMANA\n";
+  csv+=row(["Semana","Trabajadas","Contractuales","Crédito semana","Días trabajados","Días libres","Notas","Guardado el"]);
   sorted.forEach(s=>{
     const diasTrab=s.horario?.filter(d=>!d.libre&&d.entrada&&d.salida).length||0;
-    const regDate=s.registradoEn?new Date(s.registradoEn).toLocaleString("es-ES"):"";
+    const diasLibres=s.horario?.filter(d=>d.libre).length||0;
     const diff=parseFloat(s.diff)||0;
-    csv+=row([s.fechaLunes,s.horasAsignadas,s.horasContractuales,diff.toFixed(2),fmtHoras(diff),diasTrab,s.notas||"",regDate]);
+    const regDate=s.registradoEn?new Date(s.registradoEn).toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+    const credito=(diff>=0?"+":"")+fmtHoras(diff);
+    csv+=row([
+      "Semana del "+fmtFecha(s.fechaLunes),
+      s.horasAsignadas+"h",
+      s.horasContractuales+"h",
+      credito,
+      diasTrab+" días",
+      diasLibres+" días",
+      s.notas||"",
+      regDate
+    ]);
   });
-
-  // ── BLOQUE 2: Saldo acumulado ──
-  const totalH=sorted.reduce((s,x)=>s+(parseFloat(x.diff)||0),0);
+  csv+=row(["TOTAL ACUMULADO","","",( totalAcum>=0?"+":"")+fmtHoras(totalAcum),"","","",""]);
   csv+="\n";
-  csv+=row(["SALDO TOTAL ACUMULADO","","","",fmtHoras(totalH),"","",""]);
 
-  // ── BLOQUE 3: Detalle diario ──
-  csv+="\n\nDETALLE DIARIO POR SEMANA\n";
-  csv+=row(["Semana","Día","Fecha","Entrada","Salida","Horas día","Libre"]);
+  // ── DETALLE DIARIO ──
+  csv+="DETALLE DÍA A DÍA\n";
+  csv+=row(["Semana","Día","Entrada","Salida","Horas trabajadas","Estado"]);
   sorted.forEach(s=>{
-    if(!s.horario||s.horario.length===0){
-      csv+=row([s.fechaLunes,"(sin horario detallado)","","","","",""]);
+    if(!s.horario||!s.horario.length){
+      csv+=row(["Semana del "+fmtFecha(s.fechaLunes),"(sin horario registrado)","","","",""]);
       return;
     }
     s.horario.forEach((dia,idx)=>{
-      const fechaDia=new Date(s.fechaLunes);
-      fechaDia.setDate(fechaDia.getDate()+idx);
-      const fechaStr=fechaDia.toLocaleDateString("es-ES");
+      const fechaDia=fmtFechaDia(s.fechaLunes,idx);
       if(dia.libre){
-        csv+=row([s.fechaLunes,dia.dia||"",fechaStr,"","","","Libre"]);
+        csv+=row(["Semana del "+fmtFecha(s.fechaLunes),fechaDia,"","","","Día libre"]);
       } else {
-        let horasDia="";
-        if(dia.entrada&&dia.salida){
-          const[eh,em]=dia.entrada.split(":").map(Number);
-          const[sh,sm]=dia.salida.split(":").map(Number);
-          horasDia=((sh*60+sm-(eh*60+em))/60).toFixed(2);
-        }
-        csv+=row([s.fechaLunes,dia.dia||"",fechaStr,dia.entrada||"",dia.salida||"",horasDia,""]);
+        csv+=row([
+          "Semana del "+fmtFecha(s.fechaLunes),
+          fechaDia,
+          dia.entrada||"",
+          dia.salida||"",
+          fmtHorasDia(dia.entrada,dia.salida),
+          dia.entrada&&dia.salida?"Trabajado":"Sin registrar"
+        ]);
       }
     });
   });
@@ -3143,12 +3241,111 @@ function recalcSaldos(){
 }
 function financeTab(tab,btn){
   currentFinTab=tab;
-  ["movimientos","presupuesto","graficas","transferir","papelera"].forEach(t=>{const el=document.getElementById("fin"+t.charAt(0).toUpperCase()+t.slice(1));if(el)el.style.display=t===tab?"block":"none";});
+  ["movimientos","presupuesto","graficas","transferir","papelera","ahorros"].forEach(t=>{const el=document.getElementById("fin"+t.charAt(0).toUpperCase()+t.slice(1));if(el)el.style.display=t===tab?"block":"none";});
   document.querySelectorAll("#sec-finanzas .tab-btn").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
   if(tab==="graficas")setTimeout(renderGraficas,100);
   if(tab==="presupuesto")renderPresupuesto();
   if(tab==="papelera")renderPapelera();
+  if(tab==="ahorros")renderAhorros();
+}
+
+// ── AHORROS ──────────────────────────────────────────────
+function setAhorroTipo(tipo){
+  ahorroTipoActual=tipo;
+  const ef=document.getElementById("ahorroTipoEfectivo");
+  const ta=document.getElementById("ahorroTipoTarjeta");
+  if(tipo==="efectivo"){
+    ef.style.cssText="flex:1;padding:10px;border-radius:8px;border:2px solid var(--green);background:var(--green-bg);color:var(--green);font-weight:600;cursor:pointer;font-size:13px";
+    ta.style.cssText="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-weight:600;cursor:pointer;font-size:13px";
+  } else {
+    ta.style.cssText="flex:1;padding:10px;border-radius:8px;border:2px solid var(--accent2);background:var(--accent-bg);color:var(--accent2);font-weight:600;cursor:pointer;font-size:13px";
+    ef.style.cssText="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-weight:600;cursor:pointer;font-size:13px";
+  }
+}
+
+function openModalAhorro(id){
+  document.getElementById("ahorroEditId").value="";
+  document.getElementById("ahorroMonto").value="";
+  document.getElementById("ahorroDesc").value="";
+  document.getElementById("ahorroFecha").value=new Date().toISOString().slice(0,10);
+  document.getElementById("modalAhorroTitle").textContent="🏦 Nuevo Ahorro";
+  ahorroTipoActual="efectivo";
+  setAhorroTipo("efectivo");
+  if(id){
+    const a=ahorros.find(x=>x.id===id);
+    if(!a)return;
+    document.getElementById("ahorroEditId").value=id;
+    document.getElementById("ahorroMonto").value=a.cantidad;
+    document.getElementById("ahorroDesc").value=a.descripcion||"";
+    document.getElementById("ahorroFecha").value=a.fecha||new Date().toISOString().slice(0,10);
+    document.getElementById("modalAhorroTitle").textContent="✏️ Editar Ahorro";
+    ahorroTipoActual=a.tipo||"efectivo";
+    setAhorroTipo(ahorroTipoActual);
+  }
+  openModal("modalAhorro");
+}
+
+function guardarAhorro(){
+  const cantidad=parseFloat(document.getElementById("ahorroMonto").value);
+  if(isNaN(cantidad)||cantidad<=0){toast("Introduce una cantidad válida");return;}
+  const desc=document.getElementById("ahorroDesc").value.trim();
+  const fecha=document.getElementById("ahorroFecha").value||new Date().toISOString().slice(0,10);
+  const editId=document.getElementById("ahorroEditId").value;
+  if(editId){
+    const idx=ahorros.findIndex(x=>x.id===editId);
+    if(idx>-1){ahorros[idx]={...ahorros[idx],cantidad,tipo:ahorroTipoActual,descripcion:desc,fecha};}
+    toast("✅ Ahorro actualizado");
+  } else {
+    ahorros.push({id:"ah_"+Date.now(),cantidad,tipo:ahorroTipoActual,descripcion:desc,fecha});
+    toast("✅ Ahorro registrado");
+  }
+  S.set("ahorros",ahorros);
+  closeModal("modalAhorro");
+  renderAhorros();
+}
+
+async function eliminarAhorro(id){
+  if(!await appConfirm("¿Eliminar este ahorro?",{title:"Eliminar ahorro",icon:"🗑️",okLabel:"Eliminar",okClass:"btn-danger"}))return;
+  ahorros=ahorros.filter(x=>x.id!==id);
+  S.set("ahorros",ahorros);
+  renderAhorros();
+  toast("🗑️ Ahorro eliminado");
+}
+
+function renderAhorros(){
+  const mon=v=>(v||0).toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})+"€";
+  const totalEf=ahorros.filter(a=>a.tipo==="efectivo").reduce((s,a)=>s+a.cantidad,0);
+  const totalTa=ahorros.filter(a=>a.tipo==="tarjeta").reduce((s,a)=>s+a.cantidad,0);
+  const total=totalEf+totalTa;
+  document.getElementById("ahorroKpiTotal").textContent=mon(total);
+  document.getElementById("ahorroKpiEfectivo").textContent=mon(totalEf);
+  document.getElementById("ahorroKpiTarjeta").textContent=mon(totalTa);
+  const list=document.getElementById("ahorrosList");
+  if(!ahorros.length){
+    list.innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--text3)"><div style="font-size:36px;margin-bottom:8px">🏦</div><div style="font-size:14px">Sin ahorros registrados</div><div style="font-size:12px;margin-top:4px">Pulsa "+ Añadir ahorro" para empezar</div></div>`;
+    return;
+  }
+  const sorted=[...ahorros].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  list.innerHTML=sorted.map(a=>{
+    const esEf=a.tipo==="efectivo";
+    const icon=esEf?"💵":"💳";
+    const color=esEf?"var(--green)":"var(--accent2)";
+    const bgColor=esEf?"var(--green-bg)":"var(--accent-bg)";
+    const fechaFmt=a.fecha?new Date(a.fecha+"T12:00:00").toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}):"";
+    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:10px;background:${bgColor};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:14px;color:var(--text)">${a.descripcion||"Ahorro"}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${fechaFmt} · ${esEf?"Efectivo":"Tarjeta"}</div>
+      </div>
+      <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:${color};flex-shrink:0">+${(a.cantidad||0).toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})}€</div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button onclick="openModalAhorro('${a.id}')" style="background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 8px;cursor:pointer;color:var(--text2);font-size:12px" title="Editar">${ICON_EDIT}</button>
+        <button onclick="eliminarAhorro('${a.id}')" style="background:var(--red-bg);border:1px solid rgba(239,68,68,.2);border-radius:7px;padding:6px 8px;cursor:pointer;color:var(--red);font-size:12px" title="Eliminar">🗑️</button>
+      </div>
+    </div>`;
+  }).join("");
 }
 function setTipoMov(tipo){
   tipoMovActual=tipo;
@@ -4153,7 +4350,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260402v62';
+const CURRENT_CACHE = 'mivida-20260403a';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
