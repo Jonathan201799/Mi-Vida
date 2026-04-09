@@ -486,6 +486,24 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
     <button class="login-btn" style="justify-content:center;width:100%;box-sizing:border-box" onclick="doEmailLogin()">
       Entrar
     </button>
+    <div style="text-align:center;font-size:13px;color:var(--text3,#4a4760)">
+      ¿No tienes cuenta? <span style="color:var(--accent,#2563eb);cursor:pointer" onclick="toggleRegister()">Crear cuenta</span>
+    </div>
+  </div>
+
+  <div id="registerForm" style="width:100%;max-width:320px;display:none;flex-direction:column;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:24px;backdrop-filter:blur(20px)">
+    <input id="regEmail" type="email" placeholder="Correo electrónico" autocomplete="email"
+      style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--text,#e8e6f0);font-size:15px;outline:none;box-sizing:border-box">
+    <input id="regPassword" type="password" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password"
+      style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--text,#e8e6f0);font-size:15px;outline:none;box-sizing:border-box">
+    <input id="regCode" type="text" placeholder="Código de invitación"
+      style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--text,#e8e6f0);font-size:15px;outline:none;box-sizing:border-box">
+    <button class="login-btn" style="justify-content:center;width:100%;box-sizing:border-box" onclick="doRegister()">
+      Crear cuenta
+    </button>
+    <div style="text-align:center;font-size:13px;color:var(--text3,#4a4760)">
+      ¿Ya tienes cuenta? <span style="color:var(--accent,#2563eb);cursor:pointer" onclick="toggleRegister()">Iniciar sesión</span>
+    </div>
   </div>
 
   <div class="login-loading" id="loginStatus"></div>
@@ -1460,11 +1478,15 @@ async function doEmailLogin(){
   }
 }
 
+const INVITE_CODE='Mv7kP-9rXn2-Qb4wT';
+
 async function doRegister(){
   const email=document.getElementById("regEmail").value.trim();
   const pass=document.getElementById("regPassword").value;
+  const code=document.getElementById("regCode").value.trim();
   const status=document.getElementById("loginStatus");
-  if(!email||!pass){status.textContent="Introduce email y contraseña.";return;}
+  if(!email||!pass||!code){status.textContent="Completa todos los campos.";return;}
+  if(code!==INVITE_CODE){status.textContent="Código de invitación incorrecto.";return;}
   if(pass.length<6){status.textContent="La contraseña debe tener al menos 6 caracteres.";return;}
   status.textContent="Creando cuenta...";
   try{
@@ -4526,7 +4548,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260409a';
+const CURRENT_CACHE = 'mivida-20260409b';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
