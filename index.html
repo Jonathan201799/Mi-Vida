@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Mi Vida">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.github.com https://jonathan201799.github.io; img-src 'self' data: blob:; worker-src 'self' blob:; manifest-src 'self';">
 
 <style>
 /* ── LOGIN OVERLAY ── */
@@ -485,22 +486,6 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
     <button class="login-btn" style="justify-content:center;width:100%;box-sizing:border-box" onclick="doEmailLogin()">
       Entrar
     </button>
-    <div style="text-align:center;font-size:13px;color:var(--text3,#4a4760)">
-      ¿No tienes cuenta? <span style="color:var(--accent,#2563eb);cursor:pointer" onclick="toggleRegister()">Crear cuenta</span>
-    </div>
-  </div>
-
-  <div id="registerForm" style="width:100%;max-width:320px;display:none;flex-direction:column;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:24px;backdrop-filter:blur(20px)">
-    <input id="regEmail" type="email" placeholder="Correo electrónico" autocomplete="email"
-      style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--text,#e8e6f0);font-size:15px;outline:none;box-sizing:border-box">
-    <input id="regPassword" type="password" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password"
-      style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--text,#e8e6f0);font-size:15px;outline:none;box-sizing:border-box">
-    <button class="login-btn" style="justify-content:center;width:100%;box-sizing:border-box" onclick="doRegister()">
-      Crear cuenta
-    </button>
-    <div style="text-align:center;font-size:13px;color:var(--text3,#4a4760)">
-      ¿Ya tienes cuenta? <span style="color:var(--accent,#2563eb);cursor:pointer" onclick="toggleRegister()">Iniciar sesión</span>
-    </div>
   </div>
 
   <div class="login-loading" id="loginStatus"></div>
@@ -1436,22 +1421,42 @@ function toggleRegister(){
   document.getElementById("loginStatus").textContent="";
 }
 
+// ── RATE LIMITER LOGIN ──────────────────────────────────────────────
+const loginRL={
+  attempts:0, lockedUntil:0,
+  MAX:5, LOCKOUT:15*60*1000,
+  check(){
+    if(Date.now()<this.lockedUntil){
+      const mins=Math.ceil((this.lockedUntil-Date.now())/60000);
+      return `Demasiados intentos. Espera ${mins} min e inténtalo de nuevo.`;
+    }
+    return null;
+  },
+  fail(){
+    this.attempts++;
+    if(this.attempts>=this.MAX){this.lockedUntil=Date.now()+this.LOCKOUT;this.attempts=0;}
+  },
+  ok(){this.attempts=0;this.lockedUntil=0;}
+};
+
 async function doEmailLogin(){
   const email=document.getElementById("loginEmail").value.trim();
   const pass=document.getElementById("loginPassword").value;
   const status=document.getElementById("loginStatus");
   if(!email||!pass){status.textContent="Introduce email y contraseña.";return;}
+  const blocked=loginRL.check();
+  if(blocked){status.textContent=blocked;return;}
   status.textContent="Entrando...";
   try{
     await auth.signInWithEmailAndPassword(email,pass);
+    loginRL.ok();
   } catch(e){
+    loginRL.fail();
     const msgs={
-      "auth/user-not-found":"No existe una cuenta con ese email.",
-      "auth/wrong-password":"Contraseña incorrecta.",
       "auth/invalid-email":"Email no válido.",
-      "auth/invalid-credential":"Email o contraseña incorrectos."
+      "auth/too-many-requests":"Demasiados intentos. Espera unos minutos."
     };
-    status.textContent=(msgs[e.code]||"Error: "+e.code+" — "+e.message);
+    status.textContent=(msgs[e.code]||"Email o contraseña incorrectos.");
   }
 }
 
@@ -4521,7 +4526,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260404b';
+const CURRENT_CACHE = 'mivida-20260409a';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
