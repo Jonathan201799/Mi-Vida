@@ -920,31 +920,25 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
         <div class="card">
           <div class="card-title" style="margin-bottom:16px" id="ajustesProfileTitle">Perfil</div>
           <div class="input-group"><div class="input-label" id="ajustesNombreLabel">TU NOMBRE</div><input type="text" id="ajustesNombre" placeholder="Jonathan" oninput="saveAjustes()"></div>
-        </div>
-        <div class="card">
-          <div class="card-title" style="margin-bottom:16px" id="ajustesWorkTitle">Trabajo</div>
-          <div class="input-group"><div class="input-label" id="ajustesHorasLabel">JORNADA SEMANAL (horas)</div><input type="number" id="ajustesJornadaSemanal" value="34" step="0.5" min="1" max="60" oninput="saveAjustes()"></div>
-          <div class="input-group"><div class="input-label" id="ajustesInicioLabel">DÍA DE INICIO DE SEMANA</div>
-            <select id="ajustesInicioSemana" onchange="saveAjustes()">
-              <option value="1" id="optLunes">Lunes</option>
-              <option value="0" id="optDomingo">Domingo</option>
+          <div class="input-group"><div class="input-label" id="ajustesLangLabel">IDIOMA</div>
+            <select id="ajustesIdioma" onchange="changeIdioma(this.value)">
+              <option value="es">🇪🇸 Español</option>
+              <option value="ru">🇷🇺 Русский</option>
             </select>
           </div>
-        </div>
-        <div class="card">
-          <div class="card-title" style="margin-bottom:16px" id="ajustesCurrencyTitle">Moneda</div>
-          <div class="input-group"><div class="input-label" id="ajustesCurrencyLabel">SÍMBOLO</div>
+          <div class="input-group"><div class="input-label" id="ajustesCurrencyLabel">MONEDA</div>
             <select id="ajustesMoneda" onchange="saveAjustes()">
               <option value="€">€ Euro</option><option value="$">$ Dólar</option><option value="£">£ Libra</option><option value="₽">₽ Rublo</option>
             </select>
           </div>
         </div>
         <div class="card">
-          <div class="card-title" style="margin-bottom:16px" id="ajustesLangTitle">Idioma</div>
-          <div class="input-group"><div class="input-label" id="ajustesLangLabel">IDIOMA</div>
-            <select id="ajustesIdioma" onchange="changeIdioma(this.value)">
-              <option value="es">🇪🇸 Español</option>
-              <option value="ru">🇷🇺 Русский</option>
+          <div class="card-title" style="margin-bottom:16px" id="ajustesWorkTitle">Crédito horario</div>
+          <div class="input-group"><div class="input-label" id="ajustesHorasLabel">JORNADA SEMANAL (horas)</div><input type="number" id="ajustesJornadaSemanal" value="34" step="0.5" min="1" max="60" oninput="saveAjustes()"></div>
+          <div class="input-group"><div class="input-label" id="ajustesInicioLabel">INICIO DE SEMANA</div>
+            <select id="ajustesInicioSemana" onchange="saveAjustes()">
+              <option value="1" id="optLunes">Lunes</option>
+              <option value="0" id="optDomingo">Domingo</option>
             </select>
           </div>
         </div>
@@ -952,8 +946,7 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
         <div class="card">
           <div class="card-title" style="margin-bottom:16px" id="ajustesDataTitle">Datos y cuenta</div>
           <div style="background:var(--accent-bg);border:1px solid rgba(37,99,235,.2);border-radius:12px;padding:16px;margin-bottom:16px">
-            <div style="font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--accent2);text-transform:uppercase;margin-bottom:6px">Notificaciones</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.5">En iPhone actívalas manualmente desde aquí.</div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--accent2);text-transform:uppercase;margin-bottom:10px">Notificaciones</div>
             <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="pedirPermisoNotificaciones()" id="btnNotifPerm">Activar notificaciones</button>
             <div id="notifStatus" style="font-size:12px;margin-top:8px;color:var(--text3)"></div>
           </div>
@@ -3267,7 +3260,7 @@ function descargaPDFSemana(fechaLunes){
     if(_diaTipo!=="normal"){
       doc.setTextColor(26,37,64);
       doc.text(dia.dia||"—",ml+3,y+5.5);
-      doc.setTextColor(_diaTipo==="vacaciones"?[99,179,237]:_diaTipo==="libre"?[16,185,129]:[217,119,6]);
+      doc.setTextColor(...(_diaTipo==="vacaciones"?[99,179,237]:_diaTipo==="libre"?[16,185,129]:[217,119,6]));
       doc.text("—",ml+42,y+5.5);
       doc.text(_diaTipo==="vacaciones"?"Vacaciones":_diaTipo==="libre"?"Día Libre":"NL – No laborable",ml+148,y+5.5);
     } else {
