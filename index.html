@@ -702,6 +702,7 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;position:relative;z-index:1">
           <button class="btn btn-ghost" style="font-size:11px;padding:7px 10px;white-space:nowrap;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7)" onclick="exportarCSVCredito()" title="Exportar CSV">📊 CSV</button>
+          <button class="btn btn-ghost" style="font-size:11px;padding:7px 10px;white-space:nowrap;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7)" onclick="openAjusteManual()" title="Ajuste manual de horas">± Ajuste</button>
           <button class="btn sec-hero-btn" id="btnAddSemana" onclick="openModal('modalRegistrarSemana')" style="white-space:nowrap;padding:7px 12px;font-size:12px">+ Semana</button>
         </div>
       </div>
@@ -1131,6 +1132,37 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
     <button class="btn btn-ghost" style="width:100%" id="modalSemanaCalcBtn" onclick="calcSemana()">Calcular crédito</button>
     <button class="btn btn-primary" style="width:100%" id="modalSemanaSaveBtn" onclick="guardarSemana()">Guardar semana</button>
   </div>
+</div></div>
+
+<!-- Ajuste Manual Crédito -->
+<div class="modal-overlay" id="modalAjusteManual"><div class="modal" style="max-width:420px">
+  <div class="modal-handle"></div>
+  <div class="modal-header"><div class="modal-title">± Ajuste manual de horas</div><button class="modal-close" onclick="closeModal('modalAjusteManual')">✕</button></div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.5">Usa esto para registrar horas acumuladas antes de tener la app, correcciones puntuales u otros ajustes que no corresponden a una semana completa.</div>
+  <div class="input-group">
+    <div class="input-label">FECHA DEL AJUSTE</div>
+    <input type="date" id="ajusteFecha">
+  </div>
+  <div class="input-group">
+    <div class="input-label">TIPO DE AJUSTE</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+      <label style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;font-size:13px">
+        <input type="radio" name="ajusteTipo" value="favor" id="ajusteTipoFavor" checked style="accent-color:var(--green)"> <span style="color:var(--green);font-weight:600">✅ A favor (+)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;font-size:13px">
+        <input type="radio" name="ajusteTipo" value="deuda" id="ajusteTipoDeuda" style="accent-color:var(--red)"> <span style="color:var(--red);font-weight:600">⚠️ Pendiente (−)</span>
+      </label>
+    </div>
+  </div>
+  <div class="input-group">
+    <div class="input-label">HORAS</div>
+    <input type="number" id="ajusteHoras" placeholder="Ej: 5.5" step=".5" min=".5" max="9999" style="font-size:28px;font-family:var(--font-display);font-weight:700;text-align:center;height:60px">
+  </div>
+  <div class="input-group">
+    <div class="input-label">DESCRIPCIÓN (opcional)</div>
+    <textarea id="ajusteNotas" placeholder="Ej: Horas acumuladas antes de usar la app, semanas de enero..." style="min-height:64px;max-height:120px;font-size:13px;resize:vertical;writing-mode:horizontal-tb;direction:ltr;line-height:1.5;padding:10px 12px"></textarea>
+  </div>
+  <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="guardarAjusteManual()">Guardar ajuste</button>
 </div></div>
 
 <!-- Nuevo Movimiento -->
@@ -3099,19 +3131,21 @@ function renderCredito(){
     ?`<div class="empty-state"><div class="empty-icon">⏱</div><p>${L.credit.no_history}</p></div>`
     :sorted.map(s=>{
       const regDate=s.registradoEn?new Date(s.registradoEn).toLocaleString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
-      return`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px">
+      const isManual=s.tipo==="manual";
+      return`<div style="background:var(--bg2);border:1px solid ${isManual?"rgba(251,191,36,.25)":"var(--border)"};border-radius:12px;padding:14px 16px;margin-bottom:10px${isManual?";position:relative":""}">
+        ${isManual?`<div style="position:absolute;top:10px;right:10px;font-size:9px;font-weight:700;letter-spacing:.5px;color:rgba(251,191,36,.7);background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:4px;padding:2px 6px">AJUSTE MANUAL</div>`:""}
         <div style="display:flex;align-items:center;gap:10px">
           <div style="width:8px;height:8px;border-radius:50%;background:${s.diff>=0?"var(--green)":"var(--red)"};flex-shrink:0"></div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:600">${L.credit.week_of} ${s.fechaLunes}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:1px">${s.horasAsignadas}h trabajadas · ${s.horasContractuales}h contractuales${regDate?" · registrado "+regDate:""}</div>
+            <div style="font-size:14px;font-weight:600">${isManual?"Ajuste · "+s.fechaLunes:L.credit.week_of+" "+s.fechaLunes}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">${isManual?"Ajuste manual de horas"+(regDate?" · "+regDate:""):s.horasAsignadas+"h trabajadas · "+s.horasContractuales+"h contractuales"+(regDate?" · registrado "+regDate:"")}</div>
           </div>
           <span class="badge ${s.diff>=0?"badge-green":"badge-red"}">${fmtHoras(s.diff)}</span>
         </div>
         ${s.notas?`<div style="margin-top:10px;padding:8px 10px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text2);line-height:1.5">📝 ${s.notas}</div>`:""}
         <div style="display:flex;gap:6px;margin-top:10px">
-          <button class="btn btn-ghost btn-sm" onclick="descargaPDFSemana('${s.fechaLunes}')" title="Descargar PDF" style="gap:5px;font-size:11px">${ICON_PDF} PDF</button>
-          <button class="btn btn-ghost btn-sm" onclick="editarSemana('${s.fechaLunes}')" title="Editar" style="gap:5px;font-size:11px">${ICON_EDIT} Editar</button>
+          ${isManual?"":`<button class="btn btn-ghost btn-sm" onclick="descargaPDFSemana('${s.fechaLunes}')" title="Descargar PDF" style="gap:5px;font-size:11px">${ICON_PDF} PDF</button>`}
+          ${isManual?"":`<button class="btn btn-ghost btn-sm" onclick="editarSemana('${s.fechaLunes}')" title="Editar" style="gap:5px;font-size:11px">${ICON_EDIT} Editar</button>`}
           <button class="btn btn-danger btn-sm btn-icon" onclick="eliminarSemana('${s.id}')" style="margin-left:auto">✕</button>
         </div>
       </div>`;
@@ -3125,6 +3159,28 @@ function renderCredito(){
   },100);
 }
 async function eliminarSemana(id){if(!await appConfirm("Esta acción no se puede deshacer.",{title:"Borrar semana",icon:"🗑️"}))return;semanas=semanas.filter(s=>s.id!==id);S.set("semanas",semanas);renderCredito();}
+function openAjusteManual(){
+  document.getElementById("ajusteFecha").value=today();
+  document.getElementById("ajusteTipoFavor").checked=true;
+  document.getElementById("ajusteHoras").value="";
+  document.getElementById("ajusteNotas").value="";
+  openModal("modalAjusteManual");
+}
+function guardarAjusteManual(){
+  const fecha=document.getElementById("ajusteFecha").value;
+  const horas=parseFloat(document.getElementById("ajusteHoras").value);
+  const tipo=document.querySelector('input[name="ajusteTipo"]:checked')?.value||"favor";
+  const notas=document.getElementById("ajusteNotas").value.trim();
+  if(!fecha)return toast("Selecciona una fecha");
+  if(!horas||horas<=0)return toast("Introduce las horas del ajuste");
+  const diff=tipo==="favor"?horas:-horas;
+  const entrada={id:uid(),tipo:"manual",fechaLunes:fecha,horasAsignadas:0,horasContractuales:0,diff,notas,registradoEn:new Date().toISOString()};
+  semanas.push(entrada);
+  S.set("semanas",semanas);
+  closeModal("modalAjusteManual");
+  toast("Ajuste guardado ✓");
+  renderCredito();
+}
 
 function descargaPDFSemana(fechaLunes){
   const s=semanas.find(x=>x.fechaLunes===fechaLunes);
@@ -4548,7 +4604,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260409b';
+const CURRENT_CACHE = 'mivida-20260412a';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
