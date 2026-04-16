@@ -702,6 +702,7 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;position:relative;z-index:1">
           <button class="btn btn-ghost" style="font-size:11px;padding:7px 10px;white-space:nowrap;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7)" onclick="exportarCSVCredito()" title="Exportar CSV">📊 CSV</button>
+          <button class="btn btn-ghost" style="font-size:11px;padding:7px 10px;white-space:nowrap;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7)" onclick="exportarTXTCredito()" title="Exportar TXT">📄 TXT</button>
           <button class="btn btn-ghost" style="font-size:11px;padding:7px 10px;white-space:nowrap;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7)" onclick="openAjusteManual()" title="Ajuste manual de horas">± Ajuste</button>
           <button class="btn sec-hero-btn" id="btnAddSemana" onclick="openModal('modalRegistrarSemana')" style="white-space:nowrap;padding:7px 12px;font-size:12px">+ Semana</button>
         </div>
@@ -3449,6 +3450,73 @@ function exportarCSVCredito(){
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="credito_horario_"+today()+".csv";a.click();
   toast("📊 CSV descargado");
 }
+function exportarTXTCredito(){
+  const sorted=[...semanas].sort((a,b)=>a.fechaLunes.localeCompare(b.fechaLunes));
+  const esc=v=>String(v==null?"":v).replace(/,/g,";");
+  const row=cols=>cols.map(esc).join(",")+"\n";
+  const fmtFecha=iso=>{if(!iso)return"";const[y,m,d]=iso.split("-");return`${d}/${m}/${y}`;};
+  const fmtFechaDia=(isoLunes,offset)=>{const f=new Date(isoLunes+"T12:00:00");f.setDate(f.getDate()+offset);return f.toLocaleDateString("es-ES",{weekday:"long",day:"2-digit",month:"short",year:"numeric"});};
+  const fmtHorasDia=(entrada,salida)=>{if(!entrada||!salida)return"";const[eh,em]=entrada.split(":").map(Number),[sh,sm]=salida.split(":").map(Number);const t=(sh*60+sm)-(eh*60+em);const h=Math.floor(t/60),min=t%60;return`${h}h${min>0?" "+min+"min":""}`;};
+  const totalAcum=sorted.reduce((s,x)=>s+(parseFloat(x.diff)||0),0);
+
+  let txt="";
+  txt+="MI VIDA — Historial de Crédito Horario\n";
+  txt+="Exportado el: "+new Date().toLocaleDateString("es-ES",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})+"\n";
+  txt+="Saldo acumulado total: "+fmtHoras(totalAcum)+"\n";
+  txt+="\n";
+
+  txt+="RESUMEN POR SEMANA\n";
+  txt+=row(["Semana","Trabajadas","Contractuales","Crédito semana","Días trabajados","Días libres","Notas","Guardado el"]);
+  sorted.forEach(s=>{
+    const diasTrab=s.horario?.filter(d=>!d.libre&&d.entrada&&d.salida).length||0;
+    const diasLibres=s.horario?.filter(d=>d.libre).length||0;
+    const diff=parseFloat(s.diff)||0;
+    const regDate=s.registradoEn?new Date(s.registradoEn).toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+    const credito=(diff>=0?"+":"")+fmtHoras(diff);
+    txt+=row([
+      "Semana del "+fmtFecha(s.fechaLunes),
+      s.horasAsignadas+"h",
+      s.horasContractuales+"h",
+      credito,
+      diasTrab+" días",
+      diasLibres+" días",
+      s.notas||"",
+      regDate
+    ]);
+  });
+  txt+=row(["TOTAL ACUMULADO","","",( totalAcum>=0?"+":"")+fmtHoras(totalAcum),"","","",""]);
+  txt+="\n";
+
+  txt+="DETALLE DÍA A DÍA\n";
+  txt+=row(["Semana","Día","Entrada","Salida","Horas trabajadas","Estado"]);
+  sorted.forEach(s=>{
+    if(!s.horario||!s.horario.length){
+      txt+=row(["Semana del "+fmtFecha(s.fechaLunes),"(sin horario registrado)","","","",""]);
+      return;
+    }
+    s.horario.forEach((dia,idx)=>{
+      const fechaDia=fmtFechaDia(s.fechaLunes,idx);
+      const _tipo=dia.tipo||(dia.libre?"nl":"normal");
+      if(_tipo!=="normal"){
+        const _label=_tipo==="vacaciones"?"Vacaciones":"NL – No laborable";
+        txt+=row(["Semana del "+fmtFecha(s.fechaLunes),fechaDia,"","","",_label]);
+      } else {
+        txt+=row([
+          "Semana del "+fmtFecha(s.fechaLunes),
+          fechaDia,
+          dia.entrada||"",
+          dia.salida||"",
+          fmtHorasDia(dia.entrada,dia.salida),
+          dia.entrada&&dia.salida?"Trabajado":"Sin registrar"
+        ]);
+      }
+    });
+  });
+
+  const blob=new Blob([txt],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="credito_horario_"+today()+".txt";a.click();
+  toast("📄 TXT descargado");
+}
 function editarSemana(fechaLunes){
   // Open the existing modal pre-filled with the week data
   const sem=semanas.find(s=>s.fechaLunes===fechaLunes);
@@ -4634,7 +4702,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260416c';
+const CURRENT_CACHE = 'mivida-20260416d';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
