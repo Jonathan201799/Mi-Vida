@@ -1139,10 +1139,10 @@ body.light input[type="date"],body.light input[type="time"]{color-scheme:light}
   <div class="input-group">
     <div class="input-label">TIPO DE AJUSTE</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
-      <label style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;font-size:13px">
+      <label id="labelAjusteFavor" onclick="selectAjusteTipo('favor')" style="display:flex;align-items:center;gap:8px;background:rgba(34,197,94,.12);border:1.5px solid var(--green);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;font-size:13px;transition:background .15s,border-color .15s">
         <input type="radio" name="ajusteTipo" value="favor" id="ajusteTipoFavor" checked style="accent-color:var(--green)"> <span style="color:var(--green);font-weight:600">✅ A favor (+)</span>
       </label>
-      <label style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;font-size:13px">
+      <label id="labelAjusteDeuda" onclick="selectAjusteTipo('deuda')" style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;font-size:13px;transition:background .15s,border-color .15s">
         <input type="radio" name="ajusteTipo" value="deuda" id="ajusteTipoDeuda" style="accent-color:var(--red)"> <span style="color:var(--red);font-weight:600">⚠️ Pendiente (−)</span>
       </label>
     </div>
@@ -1553,6 +1553,7 @@ auth.onAuthStateChanged(async user=>{
       let fixed=false;
       semanas=semanas.map(s=>{
         if(!s.fechaLunes)return s;
+        if(s.tipo==="manual")return s; // ajustes manuales pueden tener cualquier fecha
         const parts=s.fechaLunes.split("-").map(Number);
         if(parts.length!==3)return s;
         const d=new Date(parts[0],parts[1]-1,parts[2]);
@@ -2225,6 +2226,29 @@ function renderDashboard(){
 
   // Crédito horario semana actual
   const semActualDash=getSemanaActual();
+  // Horario de hoy
+  const todayHorario=semActualDash?.horario?.[todayIdx];
+  let horarioHoyHtml="";
+  if(todayHorario){
+    if(todayHorario.tipo==="normal"&&todayHorario.entrada&&todayHorario.salida){
+      const[eh,em]=todayHorario.entrada.split(":").map(Number),[sh,sm]=todayHorario.salida.split(":").map(Number);
+      const hTrabajadas=((sh*60+sm)-(eh*60+em))/60;
+      horarioHoyHtml=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;margin-top:4px;border-top:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--text3)">⏰ Hoy</span>
+        <span style="font-size:13px;font-weight:600;color:var(--accent2)">${todayHorario.entrada} → ${todayHorario.salida} <span style="color:var(--text3);font-weight:400">(${hTrabajadas.toFixed(1)}h)</span></span>
+      </div>`;
+    } else if(todayHorario.tipo==="nl"){
+      horarioHoyHtml=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;margin-top:4px;border-top:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--text3)">⏰ Hoy</span>
+        <span style="font-size:13px;font-weight:600;color:var(--text3)">Noche libre</span>
+      </div>`;
+    } else if(todayHorario.tipo==="libre"||todayHorario.tipo==="vacaciones"){
+      horarioHoyHtml=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;margin-top:4px;border-top:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--text3)">⏰ Hoy</span>
+        <span style="font-size:13px;font-weight:600;color:var(--green)">${todayHorario.tipo==="vacaciones"?"🏖 Vacaciones":"📅 Día libre"}</span>
+      </div>`;
+    }
+  }
   const creditSemHtml=semActualDash
     ?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0">
         <span style="font-size:13px;color:var(--text2)">Semana actual</span>
@@ -2233,7 +2257,7 @@ function renderDashboard(){
       <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
         <span style="font-size:12px;color:var(--text3)">Acumulado total</span>
         <span style="font-size:13px;font-weight:600;color:${creditTotal>=0?"var(--green)":"var(--red)"}">${fmtHoras(creditTotal)}</span>
-      </div>`
+      </div>${horarioHoyHtml}`
     :`<div style="font-size:13px;color:var(--text3);padding:8px 0">Sin registrar esta semana</div>`;
 
   // Documentos caducados o próximos a caducar
@@ -3049,8 +3073,11 @@ function calcSemana(){
   box.dataset.diff=diff;box.dataset.asignadas=asignadas;
 }
 function guardarSemana(){
-  const L=T(),fechaLunes=document.getElementById("semanaFecha").value;
+  const L=T();
+  let fechaLunes=document.getElementById("semanaFecha").value;
   if(!fechaLunes)return toast(L.toast.week_select);
+  // Asegurar que la fecha es un lunes; si no, corregir al lunes de esa semana
+  {const[fy,fm,fd]=fechaLunes.split("-").map(Number);const dow=new Date(fy,fm-1,fd).getDay();if(dow!==1){const mon=new Date(fy,fm-1,fd);mon.setDate(fd-(dow===0?6:dow-1));fechaLunes=mon.getFullYear()+"-"+String(mon.getMonth()+1).padStart(2,"0")+"-"+String(mon.getDate()).padStart(2,"0");document.getElementById("semanaFecha").value=fechaLunes;buildDiaInputs(fechaLunes);toast("📅 Fecha ajustada al lunes de esa semana");}}
   calcSemana();
   const box=document.getElementById("semanaResumen");
   const asignadas=parseFloat(box.dataset.asignadas||0);
@@ -3152,11 +3179,18 @@ function renderCredito(){
   },100);
 }
 async function eliminarSemana(id){if(!await appConfirm("Esta acción no se puede deshacer.",{title:"Borrar semana",icon:"🗑️"}))return;semanas=semanas.filter(s=>s.id!==id);S.set("semanas",semanas);renderCredito();}
+function selectAjusteTipo(tipo){
+  document.getElementById("ajusteTipoFavor").checked=tipo==="favor";
+  document.getElementById("ajusteTipoDeuda").checked=tipo==="deuda";
+  const lF=document.getElementById("labelAjusteFavor"),lD=document.getElementById("labelAjusteDeuda");
+  if(lF){lF.style.background=tipo==="favor"?"rgba(34,197,94,.12)":"var(--bg3)";lF.style.borderColor=tipo==="favor"?"var(--green)":"var(--border)";}
+  if(lD){lD.style.background=tipo==="deuda"?"rgba(239,68,68,.12)":"var(--bg3)";lD.style.borderColor=tipo==="deuda"?"var(--red)":"var(--border)";}
+}
 function openAjusteManual(){
   document.getElementById("ajusteFecha").value=today();
-  document.getElementById("ajusteTipoFavor").checked=true;
   document.getElementById("ajusteHoras").value="";
   document.getElementById("ajusteNotas").value="";
+  selectAjusteTipo("favor");
   openModal("modalAjusteManual");
 }
 function guardarAjusteManual(){
@@ -4597,7 +4631,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260412b';
+const CURRENT_CACHE = 'mivida-20260416b';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
