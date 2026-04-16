@@ -1572,8 +1572,11 @@ auth.onAuthStateChanged(async user=>{
         return s;
       });
       // Deduplicar por fechaLunes (quedarse con la más reciente por id)
+      // Los ajustes manuales nunca se deduplichan — pueden coexistir con entradas de semana
       const map=new Map();
+      let _mi=0;
       semanas.forEach(s=>{
+        if(s.tipo==="manual"){map.set("__m"+(++_mi),s);return;}
         const ex=map.get(s.fechaLunes);
         if(!ex||s.id>ex.id)map.set(s.fechaLunes,s);
       });
@@ -3091,9 +3094,9 @@ function guardarSemana(){
     const salida=document.getElementById("dia_salida_"+i)?.value||"";
     return(entrada&&salida)?{dia:L.days[i],entrada,salida,tipo:"normal"}:null;
   }).filter(Boolean);
-  const existente=semanas.find(s=>s.fechaLunes===fechaLunes);
+  const existente=semanas.find(s=>s.fechaLunes===fechaLunes&&s.tipo!=="manual");
   const sem={id:uid(),fechaLunes,horasAsignadas:asignadas,horasContractuales:contractual,diff,horario,notas,registradoEn:existente?.registradoEn||new Date().toISOString()};
-  const idx=semanas.findIndex(s=>s.fechaLunes===fechaLunes);
+  const idx=semanas.findIndex(s=>s.fechaLunes===fechaLunes&&s.tipo!=="manual");
   if(idx>=0)semanas[idx]=sem;else semanas.push(sem);
   S.set("semanas",semanas);closeModal("modalRegistrarSemana");toast(L.toast.week_saved);renderCredito();
 }
@@ -4631,7 +4634,7 @@ async function enviarReporte(){
   }
 }
 
-const CURRENT_CACHE = 'mivida-20260416b';
+const CURRENT_CACHE = 'mivida-20260416c';
 const GITHUB_SW_URL = 'https://jonathan201799.github.io/Mi-Vida/sw.js';
 let updateAvailable = false;
 
